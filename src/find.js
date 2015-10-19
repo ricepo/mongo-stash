@@ -20,7 +20,7 @@ export async function byId(id) {
   if (cached) { return cached; }
 
   const query = { _id: ObjectID(id) };
-  const result = await this.collection.findOneAsync(query);
+  const result = await this.collection.findOne(query);
   return this.cache.set(result);
 
 }

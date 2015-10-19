@@ -79,3 +79,7 @@ describe('constructor(2)', function() {
 describe('cache(1)', function() {
   require('./cache.spec.js');
 });
+
+describe('find', function() {
+  require('./find.spec.js');
+});
