@@ -9,8 +9,9 @@ const Chai         = require('chai');
 Chai.use(require('sinon-chai'));
 Chai.use(require('chai-as-promised'));
 
-const Sinon        = require('sinon');
-const ShortID      = require('shortid');
+/*!
+ * Import stuff for testing
+ */
 const MongoDB      = require('mongodb');
 const LruCache     = require('lru-cache');
 const expect       = Chai.expect;
@@ -73,4 +74,8 @@ describe('constructor(2)', function() {
     expect(actual.cache).to.have.property('_max', 321);
   });
 
+});
+
+describe('cache(1)', function() {
+  require('./cache.spec.js');
 });
