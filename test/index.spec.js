@@ -83,3 +83,7 @@ describe('cache(1)', function() {
 describe('find', function() {
   require('./find.spec.js');
 });
+
+describe('insert', function() {
+  require('./insert.spec.js');
+});
