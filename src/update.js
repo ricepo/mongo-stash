@@ -46,7 +46,6 @@ export async function one(id, changes, options) {
 export async function many(query, changes, options) {
 
   /* Use the safe version if safeMode is on */
-  /* istanbul ignore if */
   if (this.safeMode) {
     return this.updateSafe(query, changes, options);
   }

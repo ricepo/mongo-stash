@@ -5,11 +5,9 @@
  * @license MIT
  */
 
-const _            = require('lodash');
 const Sinon        = require('sinon');
 const expect       = require('chai').expect;
 const ObjectID     = require('bson-objectid');
-const Bluebird     = require('bluebird');
 
 const MongoStash   = require('../lib/index.js');
 
@@ -23,6 +21,7 @@ beforeEach(function() {
   this.collection.updateMany = Sinon.spy(this.collection.updateMany);
 
   this.stash = new MongoStash(this.collection);
+  this.stash.updateSafe = Sinon.spy(this.stash.updateSafe);
 });
 
 
@@ -168,6 +167,16 @@ describe('updateMany(3)', function() {
       .to.equal(0);
     expect(this.collection.updateMany)
       .to.have.callCount(0);
+  });
+
+  it('should use safe version when in safe mode', function*() {
+    const query = { index: { $lt: 20 } };
+    const changes = { $set: { foo: 'bar' } };
+    this.stash.safeMode = true;
+
+    yield this.stash.updateMany(query, changes);
+    expect(this.stash.updateSafe)
+      .to.be.calledOnce;
   });
 
   it('should throw when using upsert', function() {
