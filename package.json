@@ -4,7 +4,8 @@
   "description": "Caching wrapper for MongoDB collections.",
   "main": "lib/index.js",
   "scripts": {
-    "test": "./node_modules/.bin/gulp coverage && ./node_modules/.bin/codeclimate-test-reporter < coverage/lcov.info"
+    "test": "./node_modules/.bin/gulp coverage && ./node_modules/.bin/codeclimate-test-reporter < coverage/lcov.info",
+    "prepublish": "./node_modules/.bin/gulp rebuild"
   },
   "repository": {
     "type": "git",
@@ -13,6 +14,9 @@
   "keywords": [
     "mongodb",
     "cache"
+  ],
+  "files": [
+    "lib"
   ],
   "author": "Denis Luchkin-Zhou <denis@ricepo.com>",
   "license": "MIT",
