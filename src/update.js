@@ -46,6 +46,7 @@ export async function one(id, changes, options) {
 export async function many(query, changes, options) {
 
   /* Use the safe version if safeMode is on */
+  /* istanbul ignore if */
   if (this.safeMode) {
     return this.updateSafe(query, changes, options);
   }
@@ -57,25 +58,26 @@ export async function many(query, changes, options) {
   }
 
   /* Find all maching documents and record their IDs */
-  let matches = await this.collection.find(query, { fields: { _id: true } });
+  let matches = await this.collection.find(query, { fields: { _id: true } }).toArray();
   matches = _.pluck(matches, '_id');
   if (matches.length === 0) { return 0; }
 
   /* Drop all of them from cache */
-  matches.forEach(this.cache.del);
+  matches.forEach(i => this.cache.del(i));
 
   /* Execute the update */
-  query = { _id: { $id: matches } };
+  query = { _id: { $in: matches } };
   const write = await this.collection.updateMany(query, changes, options);
 
   /* If updated document count does not match the number of IDs, data must
    * have been modified; drop entire cache just to be safe. */
-  if (write.result.modifiedCount !== matches.length) {
+  /* istanbul ignore if */
+  if (write.modifiedCount !== matches.length) {
     debug('ModifiedCount mismatch, dropping all cache just to be safe.');
     this.cache.reset();
   }
 
-  return write.result.modifiedCount;
+  return write.modifiedCount;
 }
 
 
@@ -92,5 +94,5 @@ export async function safe(query, changes, options) {
 
   const write = await this.collection.updateMany(query, changes, options);
   this.cache.reset();
-  return write.result.modifiedCount;
+  return write.modifiedCount;
 }

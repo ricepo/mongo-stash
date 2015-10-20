@@ -8,7 +8,6 @@
 const Sinon        = require('sinon');
 const expect       = require('chai').expect;
 const ObjectID     = require('bson-objectid');
-const Bluebird     = require('bluebird');
 
 const MongoStash   = require('../lib/index.js');
 
@@ -163,6 +162,5 @@ describe('insertMany(2)', function() {
     expect(args).to.have.length(2);
     expect(args[1]).to.equal(options);
   });
-
 
 });
