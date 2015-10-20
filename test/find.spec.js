@@ -7,8 +7,6 @@
 
 const Sinon        = require('sinon');
 const expect       = require('chai').expect;
-const ObjectID     = require('bson-objectid');
-const Bluebird     = require('bluebird');
 
 const MongoStash   = require('../lib/index.js');
 
@@ -16,13 +14,9 @@ const MongoStash   = require('../lib/index.js');
  * Setup testing infrastructure
  */
 beforeEach(function() {
-  const value = this.value = { _id: ObjectID() };
-  this.collection = {
-    findOne: Sinon.spy(function() { return Bluebird.resolve(value); }),
-    find: Sinon.spy(function() {
-      return { toArray: function() { return Bluebird.resolve([value]); } };
-    })
-  };
+  this.collection.findOne = Sinon.spy(this.collection.findOne);
+  this.collection.find = Sinon.spy(this.collection.find);
+
   this.stash = MongoStash(this.collection);
 });
 
@@ -33,50 +27,101 @@ beforeEach(function() {
 
 describe('findById(1)', function() {
 
-  it('should find the value by ID', function() {
-    const promise = this.stash.findById(this.value._id);
+  it('should find the value by ID', function*() {
+    const value = this.data[0];
+    const result = yield this.stash.findById(value._id);
 
-    return promise.then((result) => {
-      expect(result).to.equal(this.value);
-      expect(this.collection.findOne).to.be.calledOnce;
-      expect(this.stash.cache.has(this.value._id.toString())).to.be.true;
-    });
+    /* Check if result is good */
+    expect(result).to.have.property('index', value.index);
+
+    /* Check if the native driver was called correctly */
+    expect(this.collection.findOne).to.be.calledOnce;
+    const args = this.collection.findOne.firstCall.args;
+    expect(args).to.have.length(1);
+    expect(args[0]).to.deep.equal({ _id: value._id });
+
+    /* Expect cache to have the value */
+    expect(this.stash.cache.has(value._id.toString())).to.be.true;
   });
 
-  it('should use cache when available', function() {
-    this.stash.cache.set(this.value);
-    const promise = this.stash.findById(this.value._id);
+  it('should use cache when available', function*() {
+    const value = this.data[10];
+    const result = yield this.stash.findById(value._id);
 
-    return promise.then((result) => {
-      expect(result).to.equal(this.value);
-      expect(this.collection.findOne).to.have.callCount(0);
-    });
+    /* Check if result is good */
+    expect(result).to.have.property('index', value.index);
+    expect(this.collection.findOne).to.be.calledOnce;
+
+    /* Retrieve the value again, then check if it was cached */
+    const another = yield this.stash.findById(value._id);
+    expect(another).to.have.property('index', value.index);
+    expect(this.collection.findOne).to.be.calledOnce;
+
   });
 
 });
 
 describe('find(2)', function() {
 
-  it('should call the MongoDB find()', function() {
-    const promise = this.stash.find();
+  it('should find entries matching the query', function*() {
+    const result = yield this.stash.find({ index: { $lt: 20 } }, { fields: { index: true } });
 
-    return promise.then(result => {
-      expect(result).to.have.length(1);
-      expect(this.collection.find).to.be.calledOnce;
-    });
+    expect(result).to.have.length(20);
+    expect(this.collection.find).to.be.calledOnce;
+    const args = this.collection.find.firstCall.args;
+    expect(args).to.have.length(2);
+    expect(args[0]).to.deep.equal({ index: { $lt: 20 } });
+    expect(args[1]).to.deep.equal({ fields: { index: true } });
+  });
+
+  it('should apply default projection', function*() {
+    this.stash.projection = { fields: { index: true } };
+    yield this.stash.find();
+
+    expect(this.collection.find).to.be.calledOnce;
+    const args = this.collection.find.firstCall.args;
+    expect(args).to.have.length(2);
+    expect(args[0]).to.deep.equal({ });
+    expect(args[1]).to.deep.equal({ fields: { index: true } });
+  });
+
+  it('should apply default query', function*() {
+    const results = yield this.stash.find();
+
+    expect(results).to.have.length(100);
   });
 
 });
 
 describe('findOne(2)', function() {
 
-  it('should call the MongoDB findOne()', function() {
-    const promise = this.stash.findOne();
+  it('should call the MongoDB findOne()', function*() {
+    const result = yield this.stash.findOne({ index: 19 });
 
-    return promise.then(result => {
-      expect(result).to.equal(this.value);
-      expect(this.collection.findOne).to.be.calledOnce;
-    });
+    expect(result).to.have.property('index', 19);
+    expect(this.collection.findOne).to.be.calledOnce;
+    const args = this.collection.findOne.firstCall.args;
+    expect(args).to.have.length(2);
+    expect(args[0]).to.deep.equal({ index: 19 });
+    expect(args[1]).to.deep.equal({ });
+  });
+
+  it('should apply default projection', function*() {
+    this.stash.projection = { fields: { index: false } };
+    const result = yield this.stash.findOne({ index: 21 });
+
+    expect(result).not.to.have.property('index');
+    expect(this.collection.find).to.be.calledOnce;
+    const args = this.collection.find.firstCall.args;
+    expect(args).to.have.length(2);
+    expect(args[0]).to.deep.equal({ index: 21 });
+    expect(args[1]).to.deep.equal({ fields: { index: false } });
+  });
+
+  it('should apply default query', function*() {
+    const results = yield this.stash.findOne();
+
+    expect(results).to.exist;
   });
 
 });

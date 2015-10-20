@@ -8,14 +8,17 @@
 const Chai         = require('chai');
 Chai.use(require('sinon-chai'));
 Chai.use(require('chai-as-promised'));
+require('co-mocha');
 
 /*!
  * Import stuff for testing
  */
+const ShortID      = require('shortid');
 const MongoDB      = require('mongodb');
 const LruCache     = require('lru-cache');
 const expect       = Chai.expect;
 
+const fixtures     = require('./fixtures');
 const MongoStash   = require('../lib/index.js');
 
 
@@ -29,11 +32,18 @@ before(function(done) {
     done(err);
   });
 });
-
 after(function(done) {
   this.db.close(true, done);
 });
-
+beforeEach(function() {
+  this._name = ShortID.generate();
+  this.data = fixtures;
+  this.collection = this.db.collection(this._name);
+  return this.collection.insertMany(fixtures);
+});
+afterEach(function() {
+  this.collection.drop();
+});
 
 /*!
  * Test cases start here
@@ -49,28 +59,23 @@ describe('constructor(2)', function() {
   }
 
   it('should create a MongoStash instance', function() {
-    const collection = { };
+    const actual = new MongoStash(this.collection);
 
-    const actual = new MongoStash(collection);
-
-    isMongoStash(actual, collection);
+    isMongoStash(actual, this.collection);
     expect(actual.cache._max).to.equal(500);
   });
 
   it('should pass on optional parameters', function() {
-    const collection = { };
+    const actual = new MongoStash(this.collection, 1234);
 
-    const actual = new MongoStash(collection, 1234);
-
-    isMongoStash(actual, collection);
+    isMongoStash(actual, this.collection);
     expect(actual.cache).to.have.property('_max', 1234);
   });
 
   it('should allow direct call', function() {
-    const collection = { };
-    const actual = MongoStash(collection, 321);
+    const actual = MongoStash(this.collection, 321);
 
-    isMongoStash(actual, collection);
+    isMongoStash(actual, this.collection);
     expect(actual.cache).to.have.property('_max', 321);
   });
 
@@ -86,4 +91,8 @@ describe('find', function() {
 
 describe('insert', function() {
   require('./insert.spec.js');
+});
+
+describe('update', function() {
+  require('./update.spec.js');
 });
