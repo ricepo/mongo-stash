@@ -4,7 +4,6 @@
 [![Code Climate][cc-badge]][cc-link]
 [![Test Coverage][cov-badge]][cov-link]
 
-## About
 MongoStash is a thin wrapper around [mongodb][native-link] collections that
 provides transparent caching by ID via [lru-cache][lru-link].
 
@@ -13,14 +12,17 @@ operations revolve around manipulating single records by their IDs. Meanwhile,
 MongoStash preserves the ability to update/delete multiple records while keeping
 the cache integrity.
 
-## Getting Started
+# Getting Started
 ```sh
 $ npm install mongo-stash --save
 ```
 
-## Documentation
+# Documentation
 
-### `MongoStash(collection[, options])`
+## Core
+
+###`MongoStash(collection[, options])`
+
 Creates a new MongoStash instance wrapping the `collection`. You can optionally
 specify caching parameters using the `options` arguments, which is directly
 passed to the underlying LRU cache.
@@ -36,7 +38,7 @@ const db = yield MongoDB.connect('mongodb://localhost:27017/test');
 const stash = MongoStash(db.collection('foo'), { max: 1000, maxAge: 60 });
  ```
 
-### `MongoStash.defaults`
+### `defaults`
 An object of a function specifying default properties and their values for every
 inserted document (e.g. timestamp).
 
@@ -53,7 +55,7 @@ const result = yield stash.insertOne({ foo: 'bar' });
 /* result: { _id: ObjectID(...), foo: 'bar', timestamp: Date(...) } */
 ```
 
-### `MongoStash.projection`
+### `projection`
 Default projection for uncached find operations.
 ```js
 const stash = MongoStash(collection);
@@ -64,7 +66,7 @@ const result = yield stash.find();
 /* result: [{ _id: ObjectID(...), foo: 'bar' }] */
 ```
 
-### `MongoStash.safeMode`
+### `safeMode`
 If set to `true` forces all update/delete operations on multiple documents to
 wipe entire cache. Usually not needed.
 ```js
@@ -75,7 +77,9 @@ yield stash.deleteMany({ foo: 'bar' });
 /* Cache is reset at this point */
 ```
 
-### `MongoStash.findById(id)`
+## Find
+
+### `findById(id)`
 Finds a document by its ID, retrieving it from cache if possible. The `id` can
 be either a string or a BSON ObjectID.
 
@@ -89,7 +93,7 @@ const document = yield stash.findById('5625eb34622fcb9b5937677f');
 const another = yield stash.findById('5625eb34622fcb9b5937677f');
 ```
 
-### `MongoStash.find(query, projection)`
+### `find(query, proj)`
 Equivalent to the native `Collection.find()` method. MongoStash cannot cache by
 query, therefore this method cannot utilize caching capabilities.
 
@@ -99,7 +103,7 @@ const stash = MongoStash(collection);
 const results = yield stash.find({ index: { $gt: 100 } });
 ```
 
-### `MongoStash.findOne(query, projection)`
+### `findOne(query, proj)`
 Equivalent to the native `Collection.findOne()` method. MongoStash cannot cache by
 query, therefore this method cannot utilize caching capabilities.
 
@@ -112,12 +116,13 @@ const stash = MongoStash(collection);
 const result = yield stash.findOne({ index: 3 });
 ```
 
-### `MongoStash.insertOne(document[, options])`
+## Insert
+### `insertOne(doc [, options])`
 Inserts one document into the collection, also caching it. You can optionally
 specify `options`, which are passed to the native `insertOne()` method.
 
-Before inserting, the `document` is merged with the `MongoStash.defaults`. The
-`document` is not modified during the merging process.
+Before inserting, the `doc` is merged with the `MongoStash.defaults`. The
+`doc` is not modified during the merging process.
 
 ```js
 const stash = MongoStash(collection);
@@ -125,12 +130,12 @@ const stash = MongoStash(collection);
 const result = yield stash.insertOne({ index: 3 });
 ```
 
-### `MongoStash.insertMany(documents[, options])`
+### `insertMany(docs [, options])`
 Inserts multiple documents into the collection, also caching them. You can optionally
 specify `options`, which are passed to the native `insertMany()` method.
 
-Before inserting, each of `documents` is merged with the `MongoStash.defaults`.
-The `documents` are not modified during the merging process.
+Before inserting, each of `docs` is merged with the `MongoStash.defaults`.
+The `docs` are not modified during the merging process.
 
 ```js
 const stash = MongoStash(collection);
@@ -138,7 +143,8 @@ const stash = MongoStash(collection);
 const result = yield stash.insertMany([{ index: 3 }, { index: 4 }]);
 ```
 
-### `MongoStash.updateOne(id, changes[, options])`
+## Update
+### `updateOne(id, changes[, options])`
 Updates a single document by its ID, also caching the change. You can optionally
 specify `options`, which are passed to the native `findOneAndUpdate()` method.
 
@@ -149,7 +155,7 @@ const id = '5625eb34622fcb9b5937677f';
 const result = yield stash.updateOne(id, { $set: { index: 9 } });
 ```
 
-### `MongoStash.updateMany(query, changes[, options])`
+### `updateMany(query, changes[, options])`
 Updates multiple documents, dropping matched documents from cache. You can optionally
 specify `options`, which are passed to the native `updateMany()` method.
 
@@ -164,7 +170,7 @@ const stash = MongoStash(collection);
 const result = yield stash.updateMany({ index: { $lt: 20 } }, { $set: { index: 9 } });
 ```
 
-### `MongoStash.updateSafe(query, changes[, options])`
+### `updateSafe(query, changes[, options])`
 Updates multiple documents in one query, dropping **all** of the cache. You can optionally
 specify `options`, which are passed to the native `updateMany()` method.
 
@@ -176,7 +182,8 @@ const stash = MongoStash(collection);
 const result = yield stash.updateSafe({ index: { $lt: 20 } }, { $set: { index: 9 } });
 ```
 
-### `MongoStash.deleteOne(id)`
+## Delete
+### `deleteOne(id)`
 Deletes a single document by its ID, dropping it from the cache.
 
 ```js
@@ -186,7 +193,7 @@ const id = '5625eb34622fcb9b5937677f';
 const result = yield stash.deleteOne(id);
 ```
 
-### `MongoStash.deleteMany(query)`
+### `deleteMany(query)`
 Deletes multiple documents, dropping them from cache.
 
 **NOTE:** This method is executed using two queries by first looking up matching
@@ -200,7 +207,7 @@ const stash = MongoStash(collection);
 const result = yield stash.deleteMany({ index: { $lt: 20 } });
 ```
 
-### `MongoStash.deleteSafe(query)`
+### `deleteSafe(query)`
 Deletes multiple documents in one query, dropping **all** of the cache.
 
 If `MongoStash.safeMode` is true, all calls to `deleteMany()` will be redirected here.
