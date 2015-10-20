@@ -4,24 +4,213 @@
 [![Code Climate][cc-badge]][cc-link]
 [![Test Coverage][cov-badge]][cov-link]
 
-Promisified wrapper around native MongoDB collections that offers transparent
-caching by ID.
+## About
+MongoStash is a thin wrapper around [mongodb][native-link] collections that
+provides transparent caching by ID via [lru-cache][lru-link].
 
-MongoStash is specifically designed for use cases where the vast majority of
-database operations revolve around manipulating single records by their IDs.
-Meanwhile, MongoStash preserves the ability to update or delete multiple records
-while also preserving the integrity of the cache.
+MongoStash is designed for use cases where the vast majority of database
+operations revolve around manipulating single records by their IDs. Meanwhile,
+MongoStash preserves the ability to update/delete multiple records while keeping
+the cache integrity.
 
-**NOTE**: `updateMany()` and `deleteMany()` are not atomic due to constraints of
-MongoDB operations. They will first lookup all IDs that match the provided query,
-then execute the update/delete operation. Therefore, any documents matching the
-query inserted **after the initial lookup** will not be affected by these methods.
-If you need atomicity, please use `updateSafe()` or `deleteSafe()`, which will
-drop **all of the cache**.
+## Getting Started
+```sh
+$ npm install mongo-stash --save
+```
 
-**NOTE**: At this moment the functionality of this library is complete, but tests
-are still being worked on. Until the badge above shows 100% test coverage, this
-library should not be considered production-ready.
+## Documentation
+
+### `MongoStash(collection[, options])`
+Creates a new MongoStash instance wrapping the `collection`. You can optionally
+specify caching parameters using the `options` arguments, which is directly
+passed to the underlying LRU cache.
+
+```js
+const MongoDB    = require('mongodb');
+const MongoStash = require('mongo-stash');
+
+/* You need a native mongodb connection first */
+const db = yield MongoDB.connect('mongodb://localhost:27017/test');
+
+/* Then, create the MongoStash wrapper */
+const stash = MongoStash(db.collection('foo'), { max: 1000, maxAge: 60 });
+ ```
+
+### `MongoStash.defaults`
+An object of a function specifying default properties and their values for every
+inserted document (e.g. timestamp).
+
+If it is an object, it will be merged into new document before insertion.
+
+If it is a function, it will be called with the new document as the only argument,
+then the result will be merged into the new document.
+
+```js
+const stash = MongoStash(collection);
+stash.defaults = (doc) => ({ timestamp: new Date() });
+
+const result = yield stash.insertOne({ foo: 'bar' });
+/* result: { _id: ObjectID(...), foo: 'bar', timestamp: Date(...) } */
+```
+
+### `MongoStash.projection`
+Default projection for uncached find operations.
+```js
+const stash = MongoStash(collection);
+stash.projection = { fields: { index: false } };
+
+yield stash.insertOne({ foo: 'bar', index: 1 });
+const result = yield stash.find();
+/* result: [{ _id: ObjectID(...), foo: 'bar' }] */
+```
+
+### `MongoStash.safeMode`
+If set to `true` forces all update/delete operations on multiple documents to
+wipe entire cache. Usually not needed.
+```js
+const stash = MongoStash(collection);
+stash.safeMode = true;
+
+yield stash.deleteMany({ foo: 'bar' });
+/* Cache is reset at this point */
+```
+
+### `MongoStash.findById(id)`
+Finds a document by its ID, retrieving it from cache if possible. The `id` can
+be either a string or a BSON ObjectID.
+
+```js
+const stash = MongoStash(collection);
+
+/* Queries the database, since the ObjectID is not cached */
+const document = yield stash.findById('5625eb34622fcb9b5937677f');
+
+/* Does not query the database, retrieves from cache instead */
+const another = yield stash.findById('5625eb34622fcb9b5937677f');
+```
+
+### `MongoStash.find(query, projection)`
+Equivalent to the native `Collection.find()` method. MongoStash cannot cache by
+query, therefore this method cannot utilize caching capabilities.
+
+```js
+const stash = MongoStash(collection);
+
+const results = yield stash.find({ index: { $gt: 100 } });
+```
+
+### `MongoStash.findOne(query, projection)`
+Equivalent to the native `Collection.findOne()` method. MongoStash cannot cache by
+query, therefore this method cannot utilize caching capabilities.
+
+**NOTE:** If you need to find a document by its ID, consider using `findById()`
+instead to utilize caching.
+
+```js
+const stash = MongoStash(collection);
+
+const result = yield stash.findOne({ index: 3 });
+```
+
+### `MongoStash.insertOne(document[, options])`
+Inserts one document into the collection, also caching it. You can optionally
+specify `options`, which are passed to the native `insertOne()` method.
+
+Before inserting, the `document` is merged with the `MongoStash.defaults`. The
+`document` is not modified during the merging process.
+
+```js
+const stash = MongoStash(collection);
+
+const result = yield stash.insertOne({ index: 3 });
+```
+
+### `MongoStash.insertMany(documents[, options])`
+Inserts multiple documents into the collection, also caching them. You can optionally
+specify `options`, which are passed to the native `insertMany()` method.
+
+Before inserting, each of `documents` is merged with the `MongoStash.defaults`.
+The `documents` are not modified during the merging process.
+
+```js
+const stash = MongoStash(collection);
+
+const result = yield stash.insertMany([{ index: 3 }, { index: 4 }]);
+```
+
+### `MongoStash.updateOne(id, changes[, options])`
+Updates a single document by its ID, also caching the change. You can optionally
+specify `options`, which are passed to the native `findOneAndUpdate()` method.
+
+```js
+const stash = MongoStash(collection);
+
+const id = '5625eb34622fcb9b5937677f';
+const result = yield stash.updateOne(id, { $set: { index: 9 } });
+```
+
+### `MongoStash.updateMany(query, changes[, options])`
+Updates multiple documents, dropping matched documents from cache. You can optionally
+specify `options`, which are passed to the native `updateMany()` method.
+
+**NOTE:** This method is executed using two queries by first looking up matching
+IDs, then performing the update on them. Any documents inserted **after** the initial
+lookup will not be updated. If you need to prevent this, consider using `updateSafe()`
+or setting `MongoStash.safeMode` to true.
+
+```js
+const stash = MongoStash(collection);
+
+const result = yield stash.updateMany({ index: { $lt: 20 } }, { $set: { index: 9 } });
+```
+
+### `MongoStash.updateSafe(query, changes[, options])`
+Updates multiple documents in one query, dropping **all** of the cache. You can optionally
+specify `options`, which are passed to the native `updateMany()` method.
+
+If `MongoStash.safeMode` is true, all calls to `updateMany()` will be redirected here.
+
+```js
+const stash = MongoStash(collection);
+
+const result = yield stash.updateSafe({ index: { $lt: 20 } }, { $set: { index: 9 } });
+```
+
+### `MongoStash.deleteOne(id)`
+Deletes a single document by its ID, dropping it from the cache.
+
+```js
+const stash = MongoStash(collection);
+
+const id = '5625eb34622fcb9b5937677f';
+const result = yield stash.deleteOne(id);
+```
+
+### `MongoStash.deleteMany(query)`
+Deletes multiple documents, dropping them from cache.
+
+**NOTE:** This method is executed using two queries by first looking up matching
+IDs, then performing the delete on them. Any documents inserted **after** the initial
+lookup will not be deleted. If you need to prevent this, consider using `deleteSafe()`
+or setting `MongoStash.safeMode` to true.
+
+```js
+const stash = MongoStash(collection);
+
+const result = yield stash.deleteMany({ index: { $lt: 20 } });
+```
+
+### `MongoStash.deleteSafe(query)`
+Deletes multiple documents in one query, dropping **all** of the cache.
+
+If `MongoStash.safeMode` is true, all calls to `deleteMany()` will be redirected here.
+
+```js
+const stash = MongoStash(collection);
+
+const result = yield stash.deleteSafe({ index: { $lt: 20 } });
+```
+
 
 [ci-badge]: https://circleci.com/gh/jluchiji/mongo-stash.svg?style=svg
 [ci-link]:  https://circleci.com/gh/jluchiji/mongo-stash
@@ -31,3 +220,6 @@ library should not be considered production-ready.
 
 [cov-badge]: https://codeclimate.com/github/jluchiji/mongo-stash/badges/coverage.svg
 [cov-link]: https://codeclimate.com/github/jluchiji/mongo-stash/coverage
+
+[native-link]: https://github.com/mongodb/node-mongodb-native
+[lru-link]: https://github.com/isaacs/node-lru-cache
