@@ -21,9 +21,9 @@ const debug = Debug('mongostash:delete');
 export async function one(id) {
   const query = { _id: ObjectID(id) };
 
-  const write = this.collection.deleteOne(query);
-  this.const.del(id);
-  return (write.result.deletedCount === 1);
+  const write = await this.collection.deleteOne(query);
+  this.cache.del(id);
+  return (write.deletedCount === 1);
 }
 
 
@@ -41,25 +41,26 @@ export async function many(query) {
   }
 
   /* Find all matching documents and record their IDs */
-  let matches = await this.collection.find(query, { fields: { _id: true } });
+  let matches = await this.collection.find(query, { fields: { _id: true } }).toArray();
   matches = _.pluck(matches, '_id');
   if (matches.length === 0) { return 0; }
 
   /* Drop all of them from the cache */
-  matches.forEach(this.cache.del);
+  matches.forEach(i => this.cache.del(i));
 
   /* Execute the delete */
-  query = { _id: { $id: matches } };
+  query = { _id: { $in: matches } };
   const write = await this.collection.deleteMany(query);
 
   /* If updated document count does not match the number of IDs, data must
    * have been modified; drop entire cache just to be safe. */
-  if (write.result.modifiedCount !== matches.length) {
+  /* istanbul ignore if */
+  if (write.deletedCount !== matches.length) {
     debug('DeletedCount mismatch, dropping all cache just to be safe.');
     this.cache.reset();
   }
 
-  return write.result.deletedCount;
+  return write.deletedCount;
 }
 
 
@@ -74,6 +75,6 @@ export async function safe(query) {
 
   const write = await this.collection.deleteMany(query);
   this.cache.reset();
-  return write.result.deletedCount;
+  return write.deletedCount;
 
 }

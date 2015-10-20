@@ -96,3 +96,7 @@ describe('insert', function() {
 describe('update', function() {
   require('./update.spec.js');
 });
+
+describe('delete', function() {
+  require('./delete.spec.js');
+});
