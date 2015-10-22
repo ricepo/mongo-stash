@@ -6,6 +6,11 @@
  */
 
 import _           from 'lodash';
+import Util        from 'util';
+import {
+  EventEmitter
+}                  from 'events';
+
 
 import Cache       from './cache';
 import * as Insert from './insert';
@@ -31,6 +36,12 @@ export default function MongoStash(collection, options = 500) {
 
   this.safeMode = false;
 }
+
+
+/*!
+ * Let stash emit events
+ */
+Util.inherits(MongoStash, EventEmitter);
 
 
 /*!

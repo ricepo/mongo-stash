@@ -22,6 +22,7 @@ export function get(stash, id) {
 export function set(stash, obj, age) {
   if (!obj || !obj._id) { return obj; }
   LruCache.prototype.set.call(this, obj._id.toString(), obj, age);
+  stash.emit('cache.set', obj._id);
   return obj;
 }
 
@@ -30,7 +31,9 @@ export function set(stash, obj, age) {
  * del(1)
  */
 export function del(stash, id) {
-  return LruCache.prototype.del.call(this, id.toString());
+  const result = LruCache.prototype.del.call(this, id.toString());
+  stash.emit('cache.del', id);
+  return result;
 }
 
 

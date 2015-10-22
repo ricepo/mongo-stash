@@ -9,7 +9,7 @@ const LruCache     = require('lru-cache');
 const ObjectID     = require('bson-objectid');
 const expect       = require('chai').expect;
 const Sinon        = require('sinon');
-const Cache        = require('../lib/cache').default;
+const Stash        = require('../lib');
 
 
 /*!
@@ -28,7 +28,8 @@ after(function() {
 });
 
 beforeEach(function() {
-  this.cache = Cache();
+  this.stash = new Stash(null);
+  this.cache = this.stash.cache;
   LruCache.prototype.get = Sinon.spy(LruCache.prototype._get);
   LruCache.prototype.set = Sinon.spy(LruCache.prototype._set);
   LruCache.prototype.del = Sinon.spy(LruCache.prototype._del);
@@ -47,7 +48,9 @@ it('should wrap the LruCache.get', function() {
     .to.be.calledWith(id.toString());
 });
 
-it('should wrap the LruCache.set', function() {
+it('should wrap the LruCache.set', function(done) {
+  const cb = () => done();
+  this.stash.on('cache.set', cb);
 
   const value = { _id: ObjectID() };
 
@@ -61,7 +64,9 @@ it('should wrap the LruCache.set', function() {
 
 });
 
-it('should wrap the LruCache.del', function() {
+it('should wrap the LruCache.del', function(done) {
+  const cb = () => done();
+  this.stash.on('cache.del', cb);
 
   const value = { _id: ObjectID() };
 
