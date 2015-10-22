@@ -23,7 +23,7 @@ export default function MongoStash(collection, options = 500) {
     return new MongoStash(collection, options);
   }
 
-  this.cache = Cache(options);
+  this.cache = Cache(this, options);
   this.collection = collection;
 
   this.defaults = Object.create(null);
