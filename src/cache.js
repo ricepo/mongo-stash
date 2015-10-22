@@ -38,6 +38,15 @@ export function del(stash, id) {
 
 
 /**
+ * reset(0)
+ */
+export function reset(stash) {
+  LruCache.prototype.reset.call(this);
+  stash.emit('cache.reset');
+}
+
+
+/**
  * Default export, creates a patched LRU cache.
  */
 export default function cache(stash, options) {
@@ -45,5 +54,6 @@ export default function cache(stash, options) {
   lru.get = _.partial(get, stash);
   lru.set = _.partial(set, stash);
   lru.del = _.partial(del, stash);
+  lru.reset = _.partial(reset, stash);
   return lru;
 }

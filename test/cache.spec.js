@@ -19,12 +19,14 @@ before(function() {
   LruCache.prototype._get = LruCache.prototype.get;
   LruCache.prototype._set = LruCache.prototype.set;
   LruCache.prototype._del = LruCache.prototype.del;
+  LruCache.prototype._reset = LruCache.prototype.reset;
 });
 
 after(function() {
   LruCache.prototype.get = LruCache.prototype._get;
   LruCache.prototype.set = LruCache.prototype._set;
   LruCache.prototype.del = LruCache.prototype._del;
+  LruCache.prototype.reset = LruCache.prototype._reset;
 });
 
 beforeEach(function() {
@@ -33,6 +35,7 @@ beforeEach(function() {
   LruCache.prototype.get = Sinon.spy(LruCache.prototype._get);
   LruCache.prototype.set = Sinon.spy(LruCache.prototype._set);
   LruCache.prototype.del = Sinon.spy(LruCache.prototype._del);
+  LruCache.prototype.reset = Sinon.spy(LruCache.prototype._reset);
 });
 
 
@@ -79,6 +82,26 @@ it('should wrap the LruCache.del', function(done) {
   expect(LruCache.prototype.del)
     .to.be.calledOnce.and
     .to.be.calledWith(value._id.toString());
+
+  const another = this.cache.get(value._id);
+  expect(another).not.to.exist;
+
+});
+
+it('should wrap the LruCache.reset', function(done) {
+  const cb = () => done();
+  this.stash.on('cache.reset', cb);
+
+  const value = { _id: ObjectID() };
+
+  this.cache.set(value);
+
+  const actual = this.cache.get(value._id);
+  expect(actual).to.equal(value);
+
+  this.cache.reset();
+  expect(LruCache.prototype.reset)
+    .to.be.calledOnce;
 
   const another = this.cache.get(value._id);
   expect(another).not.to.exist;
