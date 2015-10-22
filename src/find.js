@@ -5,6 +5,7 @@
  * @license MIT
  */
 
+import _           from 'lodash';
 import ObjectID    from './objectid';
 
 
@@ -36,7 +37,7 @@ export async function byId(id) {
  */
 export async function list(query, projection) {
   query = query || { };
-  projection = projection || this.projection;
+  projection = _.merge({ }, this.projection, projection);
 
   const result = await this.collection.find(query, projection).toArray();
   return result;
@@ -53,7 +54,7 @@ export async function list(query, projection) {
  */
 export async function one(query, projection) {
   query = query || { };
-  projection = projection || this.projection;
+  projection = _.merge({ }, this.projection, projection);
 
   const result = await this.collection.findOne(query, projection);
   return result;
