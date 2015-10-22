@@ -5,7 +5,7 @@
  * @license MIT
  */
 
-import ObjectID    from 'bson-objectid';
+import ObjectID    from './objectid';
 
 
 /**

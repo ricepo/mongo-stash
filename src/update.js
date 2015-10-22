@@ -7,7 +7,7 @@
 
 import _           from 'lodash';
 import Debug       from 'debug';
-import ObjectID    from 'bson-objectid';
+import ObjectID    from './objectid';
 
 const debug = Debug('mongostash:update');
 

@@ -112,6 +112,20 @@ describe('insertOne(2)', function() {
       .to.have.callCount(0);
   });
 
+  it('should support string IDs', function*() {
+    this.value._id = 'foobar123';
+    const result = yield this.stash.insertOne(this.value);
+
+    expect(result).to.have.property('index', 999);
+
+    const verify = yield this.stash.findById('foobar123');
+    expect(verify)
+      .to.exist
+      .to.have.property('index', 999);
+    expect(verify)
+      .to.have.property('_id', 'foobar123');
+  });
+
 });
 
 describe('insertMany(2)', function() {
