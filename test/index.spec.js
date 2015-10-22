@@ -81,6 +81,10 @@ describe('constructor(2)', function() {
 
 });
 
+describe('objectid(1)', function() {
+  require('./objectid.spec.js');
+});
+
 describe('cache(1)', function() {
   require('./cache.spec.js');
 });
