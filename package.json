@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jluchiji/mongo-stash.git"
+    "url": "git+https://github.com/ricepo/mongo-stash.git"
   },
   "keywords": [
     "mongodb",
@@ -21,9 +21,9 @@
   "author": "Denis Luchkin-Zhou <denis@ricepo.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jluchiji/mongo-stash/issues"
+    "url": "https://github.com/ricepo/mongo-stash/issues"
   },
-  "homepage": "https://github.com/jluchiji/mongo-stash#readme",
+  "homepage": "https://github.com/ricepo/mongo-stash#readme",
   "eslintConfig": {
     "root": true,
     "extends": "airbnb/base",
