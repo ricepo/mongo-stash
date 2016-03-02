@@ -4,15 +4,14 @@
  * @author  Denis Luchkin-Zhou <denis@ricepo.com>
  * @license MIT
  */
-
-import ObjectID    from 'bson-objectid';
+const ObjectID     = require('bson-objectid');
 
 
 /**
  * Determines whether a string represents a BSON ObjectID or just a string ID.
  * Returns the normalized version.
  */
-export default function objectid(str) {
+function objectid(str) {
 
   /* If this is a valid ObjectID, return it directly */
   if (ObjectID.isValid(str)) { return ObjectID(str); }
@@ -21,3 +20,4 @@ export default function objectid(str) {
   return str;
 
 }
+module.exports = objectid;

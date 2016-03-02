@@ -4,9 +4,8 @@
  * @author  Denis Luchkin-Zhou <denis@ricepo.com>
  * @license MIT
  */
-
-import _           from 'lodash';
-import ObjectID    from './objectid';
+const _            = require('lodash');
+const ObjectID     = require('./objectid');
 
 
 /**
@@ -15,7 +14,7 @@ import ObjectID    from './objectid';
  * @param     {ObjectID}     ID of the document to search for.
  * @return    {object}       Document with the ID.
  */
-export async function byId(id) {
+async function byId(id) {
 
   const cached = this.cache.get(id);
   if (cached) { return cached; }
@@ -35,7 +34,7 @@ export async function byId(id) {
  * @param     {object}       MongoDB projection.
  * @return    {array}        The array of matching documents.
  */
-export async function list(query, projection) {
+async function list(query, projection) {
   query = query || { };
   projection = _.merge({ }, this.projection, projection);
 
@@ -52,10 +51,16 @@ export async function list(query, projection) {
  * @param     {object}       MongoDB projection.
  * @return    {object}       The matching document.
  */
-export async function one(query, projection) {
+async function one(query, projection) {
   query = query || { };
   projection = _.merge({ }, this.projection, projection);
 
   const result = await this.collection.findOne(query, projection);
   return result;
 }
+
+
+/**
+ * Exports
+ */
+module.exports = { byId, list, one };

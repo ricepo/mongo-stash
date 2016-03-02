@@ -7,29 +7,27 @@
 
 const LruCache     = require('lru-cache');
 const ObjectID     = require('bson-objectid');
-const expect       = require('chai').expect;
-const Sinon        = require('sinon');
-const Stash        = require('../lib');
+const Stash        = dofile('index');
 
 
 /*!
  * Setup testing infrastructure
  */
-before(function() {
+before(async function() {
   LruCache.prototype._get = LruCache.prototype.get;
   LruCache.prototype._set = LruCache.prototype.set;
   LruCache.prototype._del = LruCache.prototype.del;
   LruCache.prototype._reset = LruCache.prototype.reset;
 });
 
-after(function() {
+after(async function() {
   LruCache.prototype.get = LruCache.prototype._get;
   LruCache.prototype.set = LruCache.prototype._set;
   LruCache.prototype.del = LruCache.prototype._del;
   LruCache.prototype.reset = LruCache.prototype._reset;
 });
 
-beforeEach(function() {
+beforeEach(async function() {
   this.stash = new Stash(null);
   this.cache = this.stash.cache;
   LruCache.prototype.get = Sinon.spy(LruCache.prototype._get);
@@ -42,7 +40,7 @@ beforeEach(function() {
 /*!
  * Test cases start here
  */
-it('should wrap the LruCache.get', function() {
+it('should wrap the LruCache.get', async function() {
   const id = ObjectID();
 
   this.cache.get(id);
@@ -51,7 +49,7 @@ it('should wrap the LruCache.get', function() {
     .to.be.calledWith(id.toString());
 });
 
-it('should wrap the LruCache.set', function(done) {
+it('should wrap the LruCache.set', async function(done) {
   const cb = () => done();
   this.stash.on('cache.set', cb);
 
@@ -67,7 +65,7 @@ it('should wrap the LruCache.set', function(done) {
 
 });
 
-it('should wrap the LruCache.del', function(done) {
+it('should wrap the LruCache.del', async function(done) {
   const cb = () => done();
   this.stash.on('cache.del', cb);
 
@@ -88,7 +86,7 @@ it('should wrap the LruCache.del', function(done) {
 
 });
 
-it('should wrap the LruCache.reset', function(done) {
+it('should wrap the LruCache.reset', async function(done) {
   const cb = () => done();
   this.stash.on('cache.reset', cb);
 
@@ -108,7 +106,7 @@ it('should wrap the LruCache.reset', function(done) {
 
 });
 
-it('should not call set if value is null or has no ID', function() {
+it('should not call set if value is null or has no ID', async function() {
   const value = { };
 
   this.cache.set(value);

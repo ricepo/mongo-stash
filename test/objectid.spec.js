@@ -5,13 +5,11 @@
  * @license MIT
  */
 
-const expect       = require('chai').expect;
 const ObjectID     = require('bson-objectid');
+const objectid     = dofile('objectid');
 
-const objectid     = require('../lib/objectid');
 
-
-it('should directly return ObjectID instance', function() {
+it('should directly return ObjectID instance', async function() {
   const expected = new ObjectID();
   const actual   = objectid(expected);
 
@@ -20,7 +18,7 @@ it('should directly return ObjectID instance', function() {
     .to.equal(expected);
 });
 
-it('should recognize ObjectID strings', function() {
+it('should recognize ObjectID strings', async function() {
   const expected = new ObjectID().toString();
   const actual   = objectid(expected);
 
@@ -30,7 +28,7 @@ it('should recognize ObjectID strings', function() {
     .to.equal(expected);
 });
 
-it('should directly return other string values', function() {
+it('should directly return other string values', async function() {
   const expected = 'foobar123';
   const actual   = objectid(expected);
 

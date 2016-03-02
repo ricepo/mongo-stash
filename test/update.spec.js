@@ -5,17 +5,14 @@
  * @license MIT
  */
 
-const Sinon        = require('sinon');
-const expect       = require('chai').expect;
 const ObjectID     = require('bson-objectid');
-
-const MongoStash   = require('../lib/index.js');
+const MongoStash   = dofile('index');
 
 
 /*!
  * Setup testing infrastructure
  */
-beforeEach(function() {
+beforeEach(async function() {
   this.collection.findOne = Sinon.spy(this.collection.findOne);
   this.collection.findOneAndUpdate = Sinon.spy(this.collection.findOneAndUpdate);
   this.collection.updateMany = Sinon.spy(this.collection.updateMany);
@@ -28,13 +25,13 @@ beforeEach(function() {
 /*!
  * Test cases start
  */
-describe('updateOne(2)', function() {
+describe('updateOne(2)', async function() {
 
-  it('should update single entry by ID', function*() {
+  it('should update single entry by ID', async function() {
     const value = this.data[37];
     const changes = { $set: { foo: 'bar' } };
 
-    const result = yield this.stash.updateOne(value._id, changes);
+    const result = await this.stash.updateOne(value._id, changes);
     expect(result)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOneAndUpdate)
@@ -49,7 +46,7 @@ describe('updateOne(2)', function() {
     expect(args[2])
       .to.deep.equal({ returnOriginal: false });
 
-    const verify = yield this.stash.findById(value._id);
+    const verify = await this.stash.findById(value._id);
     expect(this.collection.findOne)
       .to.have.callCount(0);
     expect(verify)
@@ -57,19 +54,19 @@ describe('updateOne(2)', function() {
 
   });
 
-  it('should replace the cached value', function*() {
+  it('should replace the cached value', async function() {
     const value = this.data[41];
     const changes = { $set: { foo: 'bar' } };
 
-    yield this.stash.findById(value._id);
+    await this.stash.findById(value._id);
     expect(this.stash.cache.has(value._id.toString()))
       .to.be.true;
 
-    yield this.stash.updateOne(value._id, changes);
+    await this.stash.updateOne(value._id, changes);
     expect(this.stash.cache.has(value._id.toString()))
       .to.be.true;
 
-    const result = yield this.stash.findById(value._id);
+    const result = await this.stash.findById(value._id);
     expect(this.collection.findOne)
       .to.be.calledOnce;
     expect(result)
@@ -77,12 +74,12 @@ describe('updateOne(2)', function() {
 
   });
 
-  it('should apply options', function*() {
+  it('should apply options', async function() {
     const value = { _id: ObjectID() };
     const changes = { $set: { foo: 'bar' } };
     const options = { upsert: true };
 
-    const result = yield this.stash.updateOne(value._id, changes, options);
+    const result = await this.stash.updateOne(value._id, changes, options);
     expect(result)
       .to.exist
       .to.have.property('foo', 'bar');
@@ -94,7 +91,7 @@ describe('updateOne(2)', function() {
     expect(args[2])
       .to.deep.equal({ returnOriginal: false, upsert: true });
 
-    const verify = yield this.stash.findById(value._id);
+    const verify = await this.stash.findById(value._id);
     expect(this.collection.findOne)
       .to.have.callCount(0);
     expect(verify)
@@ -106,54 +103,54 @@ describe('updateOne(2)', function() {
 });
 
 
-describe('updateMany(3)', function() {
+describe('updateMany(3)', async function() {
 
-  it('should update multiple entries', function*() {
+  it('should update multiple entries', async function() {
     const query = { index: { $lt: 20 } };
     const changes = { $set: { foo: 'bar' } };
 
-    const count = yield this.stash.updateMany(query, changes);
+    const count = await this.stash.updateMany(query, changes);
 
-    const verify = yield this.stash.find(query);
+    const verify = await this.stash.find(query);
     expect(verify)
       .to.have.length(count);
 
     verify.forEach(i => expect(i).to.have.property('foo', 'bar'));
   });
 
-  it('should drop matched itmes from cache', function*() {
+  it('should drop matched itmes from cache', async function() {
     const query = { index: { $lt: 20 } };
     const changes = { $set: { foo: 'bar' } };
 
     /* Make stash cache some IDs */
-    yield this.stash.findById(this.data[0]._id);
-    yield this.stash.findById(this.data[10]._id);
-    yield this.stash.findById(this.data[19]._id);
-    yield this.stash.findById(this.data[22]._id);
+    await this.stash.findById(this.data[0]._id);
+    await this.stash.findById(this.data[10]._id);
+    await this.stash.findById(this.data[19]._id);
+    await this.stash.findById(this.data[22]._id);
 
     /* Execute update operation */
-    yield this.stash.updateMany(query, changes);
+    await this.stash.updateMany(query, changes);
 
     /* Check if items are dropped; unmatched should remain cached */
-    const actual1 = yield this.stash.findById(this.data[0]._id);
+    const actual1 = await this.stash.findById(this.data[0]._id);
     expect(actual1)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
       .to.have.callCount(5);
 
-    const actual2 = yield this.stash.findById(this.data[10]._id);
+    const actual2 = await this.stash.findById(this.data[10]._id);
     expect(actual2)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
       .to.have.callCount(6);
 
-    const actual3 = yield this.stash.findById(this.data[19]._id);
+    const actual3 = await this.stash.findById(this.data[19]._id);
     expect(actual3)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
       .to.have.callCount(7);
 
-    const actual4 = yield this.stash.findById(this.data[22]._id);
+    const actual4 = await this.stash.findById(this.data[22]._id);
     expect(actual4)
       .not.to.have.property('foo');
     expect(this.collection.findOne)
@@ -161,25 +158,25 @@ describe('updateMany(3)', function() {
 
   });
 
-  it('should take shortcut when nothing matches', function*() {
-    const result = yield this.stash.updateMany({ _id: 'foo' });
+  it('should take shortcut when nothing matches', async function() {
+    const result = await this.stash.updateMany({ _id: 'foo' });
     expect(result)
       .to.equal(0);
     expect(this.collection.updateMany)
       .to.have.callCount(0);
   });
 
-  it('should use safe version when in safe mode', function*() {
+  it('should use safe version when in safe mode', async function() {
     const query = { index: { $lt: 20 } };
     const changes = { $set: { foo: 'bar' } };
     this.stash.safeMode = true;
 
-    yield this.stash.updateMany(query, changes);
+    await this.stash.updateMany(query, changes);
     expect(this.stash.updateSafe)
       .to.be.calledOnce;
   });
 
-  it('should throw when using upsert', function() {
+  it('should throw when using upsert', async function() {
     const promise = this.stash.updateMany({ }, { }, { upsert: true });
     expect(promise)
       .to.be.rejectedWith('Upsert is only available with safe mode.');
@@ -188,54 +185,54 @@ describe('updateMany(3)', function() {
 });
 
 
-describe('updateSafe(3)', function() {
+describe('updateSafe(3)', async function() {
 
-  it('should update multiple entries', function*() {
+  it('should update multiple entries', async function() {
     const query = { index: { $lt: 20 } };
     const changes = { $set: { foo: 'bar' } };
 
-    const count = yield this.stash.updateSafe(query, changes);
+    const count = await this.stash.updateSafe(query, changes);
 
-    const verify = yield this.stash.find(query);
+    const verify = await this.stash.find(query);
     expect(verify)
       .to.have.length(count);
 
     verify.forEach(i => expect(i).to.have.property('foo', 'bar'));
   });
 
-  it('should drop all itmes from cache', function*() {
+  it('should drop all itmes from cache', async function() {
     const query = { index: { $lt: 20 } };
     const changes = { $set: { foo: 'bar' } };
 
     /* Make stash cache some IDs */
-    yield this.stash.findById(this.data[0]._id);
-    yield this.stash.findById(this.data[10]._id);
-    yield this.stash.findById(this.data[19]._id);
-    yield this.stash.findById(this.data[22]._id);
+    await this.stash.findById(this.data[0]._id);
+    await this.stash.findById(this.data[10]._id);
+    await this.stash.findById(this.data[19]._id);
+    await this.stash.findById(this.data[22]._id);
 
     /* Execute update operation */
-    yield this.stash.updateSafe(query, changes);
+    await this.stash.updateSafe(query, changes);
 
     /* Check if items are dropped; unmatched should remain cached */
-    const actual1 = yield this.stash.findById(this.data[0]._id);
+    const actual1 = await this.stash.findById(this.data[0]._id);
     expect(actual1)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
       .to.have.callCount(5);
 
-    const actual2 = yield this.stash.findById(this.data[10]._id);
+    const actual2 = await this.stash.findById(this.data[10]._id);
     expect(actual2)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
       .to.have.callCount(6);
 
-    const actual3 = yield this.stash.findById(this.data[19]._id);
+    const actual3 = await this.stash.findById(this.data[19]._id);
     expect(actual3)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
       .to.have.callCount(7);
 
-    const actual4 = yield this.stash.findById(this.data[22]._id);
+    const actual4 = await this.stash.findById(this.data[22]._id);
     expect(actual4)
       .not.to.have.property('foo');
     expect(this.collection.findOne)

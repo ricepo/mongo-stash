@@ -4,17 +4,14 @@
  * @author  Denis Luchkin-Zhou <denis@ricepo.com>
  * @license MIT
  */
-
-const Sinon        = require('sinon');
-const expect       = require('chai').expect;
 const ObjectID     = require('bson-objectid');
+const MongoStash   = dofile('index');
 
-const MongoStash   = require('../lib/index.js');
 
 /*!
  * Setup testing infrastructure
  */
-beforeEach(function() {
+beforeEach(async function() {
   this.collection.findOne = Sinon.spy(this.collection.findOne);
   this.collection.insertOne = Sinon.spy(this.collection.insertOne);
   this.collection.insertMany = Sinon.spy(this.collection.insertMany);
@@ -34,22 +31,22 @@ beforeEach(function() {
 /**
  * Test cases
  */
-describe('insertOne(2)', function() {
+describe('insertOne(2)', async function() {
 
-  it('should insert a document', function*() {
-    const result = yield this.stash.insertOne(this.value);
+  it('should insert a document', async function() {
+    const result = await this.stash.insertOne(this.value);
 
     expect(result).to.have.property('index', 999);
 
-    const verify = yield this.collection.findOne({ _id: this.value._id });
+    const verify = await this.collection.findOne({ _id: this.value._id });
     expect(verify).to.exist.and.to.have.property('index', 999);
 
   });
 
-  it('should correctly apply defaults callback', function*() {
+  it('should correctly apply defaults callback', async function() {
     this.stash.defaults = Sinon.spy(doc => ({ foo: doc._id }));
 
-    const result = yield this.stash.insertOne(this.value);
+    const result = await this.stash.insertOne(this.value);
     expect(this.stash.defaults)
       .to.be.calledOnce
       .to.be.calledWith(this.value);
@@ -58,7 +55,7 @@ describe('insertOne(2)', function() {
     expect(result)
       .to.have.property('index', 999);
 
-    const verify = yield this.collection.findOne({ _id: this.value._id });
+    const verify = await this.collection.findOne({ _id: this.value._id });
     expect(verify)
       .to.exist
       .to.have.property('foo');
@@ -66,16 +63,16 @@ describe('insertOne(2)', function() {
       .to.have.property('index', 999);
   });
 
-  it('should correctly apply defaults object', function*() {
+  it('should correctly apply defaults object', async function() {
     this.stash.defaults = { foo: 'bar' };
 
-    const result = yield this.stash.insertOne(this.value);
+    const result = await this.stash.insertOne(this.value);
     expect(result)
       .to.have.property('foo', 'bar');
     expect(result)
       .to.have.property('index', 999);
 
-    const verify = yield this.collection.findOne({ _id: this.value._id });
+    const verify = await this.collection.findOne({ _id: this.value._id });
     expect(verify)
       .to.exist
       .to.have.property('foo', 'bar');
@@ -83,10 +80,10 @@ describe('insertOne(2)', function() {
       .to.have.property('index', 999);
   });
 
-  it('should apply options', function*() {
+  it('should apply options', async function() {
     const options = { };
 
-    const result = yield this.stash.insertOne(this.value, options);
+    const result = await this.stash.insertOne(this.value, options);
     expect(result).to.exist;
     expect(this.collection.insertOne)
       .to.be.calledOnce.and
@@ -94,31 +91,31 @@ describe('insertOne(2)', function() {
 
   });
 
-  it('should throw when returnOriginal = true', function() {
+  it('should throw when returnOriginal = true', async function() {
     const promise = this.stash.insertOne({ }, { returnOriginal: true });
     expect(promise)
       .to.be.rejectedWith('returnOriginal option is not supported.');
   });
 
-  it('should add inserted document to cache', function*() {
-    const result = yield this.stash.insertOne(this.value);
+  it('should add inserted document to cache', async function() {
+    const result = await this.stash.insertOne(this.value);
     expect(result)
       .to.exist;
 
-    const verify = yield this.stash.findById(this.value._id);
+    const verify = await this.stash.findById(this.value._id);
     expect(verify)
       .to.have.property('index', this.value.index);
     expect(this.collection.findOne)
       .to.have.callCount(0);
   });
 
-  it('should support string IDs', function*() {
+  it('should support string IDs', async function() {
     this.value._id = 'foobar123';
-    const result = yield this.stash.insertOne(this.value);
+    const result = await this.stash.insertOne(this.value);
 
     expect(result).to.have.property('index', 999);
 
-    const verify = yield this.stash.findById('foobar123');
+    const verify = await this.stash.findById('foobar123');
     expect(verify)
       .to.exist
       .to.have.property('index', 999);
@@ -128,10 +125,10 @@ describe('insertOne(2)', function() {
 
 });
 
-describe('insertMany(2)', function() {
+describe('insertMany(2)', async function() {
 
-  it('should insert multiple documents', function*() {
-    const results = yield this.stash.insertMany(this.values);
+  it('should insert multiple documents', async function() {
+    const results = await this.stash.insertMany(this.values);
 
     expect(results)
       .to.have.length(this.values.length);
@@ -148,28 +145,28 @@ describe('insertMany(2)', function() {
       .to.be.null;
   });
 
-  it('should apply defaults function', function*() {
+  it('should apply defaults async function', async function() {
     this.stash.defaults = Sinon.spy(i => ({ foo: i.index }));
 
-    const results = yield this.stash.insertMany(this.values);
+    const results = await this.stash.insertMany(this.values);
     expect(results)
       .to.have.length(this.values.length);
     results.forEach(i => expect(i).to.have.property('foo', i.index));
 
   });
 
-  it('should apply object defaults', function*() {
+  it('should apply object defaults', async function() {
     this.stash.defaults = { foo: 'bar' };
 
-    const results = yield this.stash.insertMany(this.values, undefined);
+    const results = await this.stash.insertMany(this.values, undefined);
     expect(results)
       .to.have.length(this.values.length);
     results.forEach(i => expect(i).to.have.property('foo', 'bar'));
   });
 
-  it('should apply options', function*() {
+  it('should apply options', async function() {
     const options = { };
-    yield this.stash.insertMany(this.values, options);
+    await this.stash.insertMany(this.values, options);
 
     expect(this.collection.insertMany).to.be.calledOnce;
     const args = this.collection.insertMany.firstCall.args;

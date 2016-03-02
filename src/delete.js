@@ -4,12 +4,9 @@
  * @author  Denis Luchkin-Zhou <denis@ricepo.com>
  * @license MIT
  */
-
-import _           from 'lodash';
-import Debug       from 'debug';
-import ObjectID    from './objectid';
-
-const debug = Debug('mongostash:delete');
+const _            = require('lodash');
+const Debug        = require('debug')('mongostash:delete');
+const ObjectID     = require('./objectid');
 
 
 /**
@@ -18,7 +15,7 @@ const debug = Debug('mongostash:delete');
  * @param     {ObjectID}     ID of the document to remove.
  * @returns   {boolean}      True if a document was found and deleted.
  */
-export async function one(id) {
+async function one(id) {
   const query = { _id: ObjectID(id) };
 
   const write = await this.collection.deleteOne(query);
@@ -33,7 +30,7 @@ export async function one(id) {
  * @param     {object}       MongoDB query of documents to delete.
  * @returns   {number}       Number of documents deleted.
  */
-export async function many(query) {
+async function many(query) {
 
   /* Use the safe version if safeMode is on */
   if (this.safeMode) {
@@ -42,7 +39,7 @@ export async function many(query) {
 
   /* Find all matching documents and record their IDs */
   let matches = await this.collection.find(query, { fields: { _id: true } }).toArray();
-  matches = _.pluck(matches, '_id');
+  matches = _.map(matches, '_id');
   if (matches.length === 0) { return 0; }
 
   /* Drop all of them from the cache */
@@ -56,7 +53,7 @@ export async function many(query) {
    * have been modified; drop entire cache just to be safe. */
   /* istanbul ignore if */
   if (write.deletedCount !== matches.length) {
-    debug('DeletedCount mismatch, dropping all cache just to be safe.');
+    Debug('DeletedCount mismatch, dropping all cache just to be safe.');
     this.cache.reset();
   }
 
@@ -71,10 +68,16 @@ export async function many(query) {
  * @param     {object}       MongoDB query of documents to delete.
  * @returns   {number}       Number of documents deleted.
  */
-export async function safe(query) {
+async function safe(query) {
 
   const write = await this.collection.deleteMany(query);
   this.cache.reset();
   return write.deletedCount;
 
 }
+
+
+/**
+ * Exports
+ */
+module.exports = { one, many, safe };

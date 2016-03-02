@@ -4,8 +4,7 @@
  * @author  Denis Luchkin-Zhou <denis@ricepo.com>
  * @license MIT
  */
-
-import _           from 'lodash';
+const _            = require('lodash');
 
 
 /**
@@ -15,7 +14,7 @@ import _           from 'lodash';
  * @param     {object}       Optional settings.
  * @return    {Promise}      Resolves with inserted document if successful.
  */
-export async function one(doc, options = null) {
+async function one(doc, options = null) {
 
   /* We don't support returnOriginal option here */
   if (options && options.returnOriginal) {
@@ -42,7 +41,7 @@ export async function one(doc, options = null) {
  * @param     {object}       Optional settings.
  * @return    {Promise}      Resolves with inserted document if successful.
  */
-export async function many(items, options = null) {
+async function many(items, options = null) {
 
   /* Merge with defaults */
   const isFunc = (typeof this.defaults === 'function');
@@ -60,3 +59,9 @@ export async function many(items, options = null) {
   return entries;
 
 }
+
+
+/**
+ * Exports
+ */
+module.exports = { one, many };

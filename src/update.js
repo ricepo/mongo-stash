@@ -4,12 +4,10 @@
  * @author  Denis Luchkin-Zhou <denis@ricepo.com>
  * @license MIT
  */
+const _            = require('lodash');
+const Debug        = require('debug')('mongostash:update');
+const ObjectID     = require('./objectid');
 
-import _           from 'lodash';
-import Debug       from 'debug';
-import ObjectID    from './objectid';
-
-const debug = Debug('mongostash:update');
 
 /*!
  * Default update options.
@@ -24,7 +22,7 @@ const defaults = { returnOriginal: false };
  * @param     {object}       Changes to apply to the document.
  * @return    {object}       The updated document.
  */
-export async function one(id, changes, options) {
+async function one(id, changes, options) {
   const query = { _id: ObjectID(id) };
   options = _.assign({ }, options, defaults);
 
@@ -43,7 +41,7 @@ export async function one(id, changes, options) {
  * @param     {object}       Changes to apply to the documents.
  * @return    {number}       Number of updated documents.
  */
-export async function many(query, changes, options) {
+async function many(query, changes, options) {
 
   /* Use the safe version if safeMode is on */
   if (this.safeMode) {
@@ -58,7 +56,7 @@ export async function many(query, changes, options) {
 
   /* Find all maching documents and record their IDs */
   let matches = await this.collection.find(query, { fields: { _id: true } }).toArray();
-  matches = _.pluck(matches, '_id');
+  matches = _.map(matches, '_id');
   if (matches.length === 0) { return 0; }
 
   /* Drop all of them from cache */
@@ -72,7 +70,7 @@ export async function many(query, changes, options) {
    * have been modified; drop entire cache just to be safe. */
   /* istanbul ignore if */
   if (write.modifiedCount !== matches.length) {
-    debug('ModifiedCount mismatch, dropping all cache just to be safe.');
+    Debug('ModifiedCount mismatch, dropping all cache just to be safe.');
     this.cache.reset();
   }
 
@@ -88,10 +86,16 @@ export async function many(query, changes, options) {
  * @param     {object}       Changes to apply to the documents.
  * @return    {number}       Number of updated documents.
  */
-export async function safe(query, changes, options) {
+async function safe(query, changes, options) {
   options = _.assign({ }, options, defaults);
 
   const write = await this.collection.updateMany(query, changes, options);
   this.cache.reset();
   return write.modifiedCount;
 }
+
+
+/**
+ * Exports
+ */
+module.exports = { one, many, safe };

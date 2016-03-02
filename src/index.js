@@ -4,25 +4,21 @@
  * @author  Denis Luchkin-Zhou <denis@ricepo.com>
  * @license MIT
  */
+const _            = require('lodash');
+const Util         = require('util');
+const EventEmitter = require('events').EventEmitter;
 
-import _           from 'lodash';
-import Util        from 'util';
-import {
-  EventEmitter
-}                  from 'events';
-
-
-import Cache       from './cache';
-import * as Insert from './insert';
-import * as Find   from './find';
-import * as Update from './update';
-import * as Delete from './delete';
+const Find         = require('./find');
+const Cache        = require('./cache');
+const Insert       = require('./insert');
+const Update       = require('./update');
+const Delete       = require('./delete');
 
 
 /**
  * MongoStash class.
  */
-export default function MongoStash(collection, options = 500) {
+function MongoStash(collection, options = 500) {
 
   if (!(this instanceof MongoStash)) {
     return new MongoStash(collection, options);
@@ -36,6 +32,7 @@ export default function MongoStash(collection, options = 500) {
 
   this.safeMode = false;
 }
+module.exports = MongoStash;
 
 
 /*!
