@@ -18,6 +18,7 @@ const Delete       = require('./delete');
 /**
  * MongoStash class.
  */
+/* eslint consistent-return: 0 */
 function MongoStash(collection, options = 500) {
 
   if (!(this instanceof MongoStash)) {
