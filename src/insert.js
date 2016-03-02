@@ -50,6 +50,9 @@ export async function many(items, options = null) {
     _.merge({ }, isFunc ? this.defaults(item) : this.defaults, item)
   );
 
+  /* If no items, skip */
+  if (items.length === 0) { return [ ]; }
+
   /* Insert items, cache them, and return them */
   const write = await this.collection.insertMany(items, options);
   const entries = write.ops;
