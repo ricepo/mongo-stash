@@ -1,7 +1,7 @@
 {
   "name": "mongo-stash",
   "description": "Transparent caching for MongoDB collections",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "homepage": "https://github.com/ricepo/mongo-stash",
   "author": {
     "name": "Denis Luchkin-Zhou",
