@@ -17,9 +17,9 @@ const ObjectID     = require('./objectid');
  */
 async function one(id) {
   const query = { _id: ObjectID(id) };
+  this.cache.del(id);
 
   const write = await this.collection.deleteOne(query);
-  this.cache.del(id);
   return (write.deletedCount === 1);
 }
 

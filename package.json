@@ -28,8 +28,10 @@
     "prepublish": "./node_modules/.bin/gulp rebuild"
   },
   "dependencies": {
+    "babel-eslint": "^6.0.0",
     "bson-objectid": "^1.1.4",
     "debug": "^2.2.0",
+    "gulp-babel": "^6.1.2",
     "lodash": "^4.6.1",
     "lru-cache": "^4.0.0"
   },

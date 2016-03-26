@@ -24,6 +24,7 @@ const defaults = { returnOriginal: false };
  */
 async function one(id, changes, options) {
   const query = { _id: ObjectID(id) };
+  this.cache.del(id);
   options = _.assign({ }, options, defaults);
 
   const write = await this.collection.findOneAndUpdate(query, changes, options);
