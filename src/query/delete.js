@@ -6,7 +6,7 @@
  */
 const _            = require('lodash');
 const Debug        = require('debug')('mongostash:delete');
-const ObjectID     = require('./objectid');
+const ObjectID     = require('../objectid');
 
 
 /**

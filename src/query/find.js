@@ -5,7 +5,7 @@
  * @license MIT
  */
 const _            = require('lodash');
-const ObjectID     = require('./objectid');
+const ObjectID     = require('../objectid');
 
 
 /**

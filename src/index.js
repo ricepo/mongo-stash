@@ -8,11 +8,11 @@ const _            = require('lodash');
 const Util         = require('util');
 const EventEmitter = require('events').EventEmitter;
 
-const Find         = require('./find');
 const Cache        = require('./cache');
-const Insert       = require('./insert');
-const Update       = require('./update');
-const Delete       = require('./delete');
+const Find         = require('./query/find');
+const Insert       = require('./query/insert');
+const Update       = require('./query/update');
+const Delete       = require('./query/delete');
 
 
 /**
