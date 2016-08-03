@@ -174,4 +174,15 @@ describe('insertMany(2)', async function() {
     expect(args[1]).to.equal(options);
   });
 
+  it('should skip if there are no items to insert', async function() {
+
+    const results = await this.stash.insertMany([ ]);
+
+    expect(results)
+      .to.have.length(0);
+
+    expect(this.collection.insertMany)
+      .not.to.be.called;
+  });
+
 });
