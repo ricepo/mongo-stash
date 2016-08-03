@@ -17,10 +17,15 @@ const ObjectID     = require('../objectid');
 async function byId(id) {
 
   const cached = this.cache.get(id);
-  if (cached) { return cached; }
+  if (cached) {
+    this.stats.point(1, 'hit');
+    return cached;
+  }
 
   const query = { _id: ObjectID(id) };
   const result = await this.collection.findOne(query);
+
+  this.stats.point(1, 'miss');
   return this.cache.set(result);
 
 }

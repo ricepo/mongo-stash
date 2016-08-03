@@ -31,7 +31,8 @@
     "bson-objectid": "^1.1.4",
     "debug": "^2.2.0",
     "lodash": "^4.6.1",
-    "lru-cache": "^4.0.0"
+    "lru-cache": "^4.0.0",
+    "rolling-stats": "^0.1.1"
   },
   "devDependencies": {
     "app-root-path": "^1.0.0",

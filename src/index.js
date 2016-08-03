@@ -6,8 +6,10 @@
  */
 const _            = require('lodash');
 const Util         = require('util');
+const Stats        = require('rolling-stats');
 const EventEmitter = require('events').EventEmitter;
 
+const Stat         = require('./stat');
 const Cache        = require('./cache');
 const Find         = require('./query/find');
 const Insert       = require('./query/insert');
@@ -25,6 +27,7 @@ function MongoStash(collection, options = 500) {
     return new MongoStash(collection, options);
   }
 
+  this.stats = Stats.NamedStats(1111, 1000);
   this.cache = Cache(this, options);
   this.collection = collection;
 
@@ -47,19 +50,19 @@ Util.inherits(MongoStash, EventEmitter);
  */
 _.assign(MongoStash.prototype, {
 
-  insertOne:  Insert.one,
-  insertMany: Insert.many,
+  insertOne:  Stat(Insert.one, 'insertOne'),
+  insertMany: Stat(Insert.many, 'insertMany'),
 
-  findById:   Find.byId,
-  findOne:    Find.one,
-  find:       Find.list,
+  findById:   Stat(Find.byId, 'findById'),
+  findOne:    Stat(Find.one, 'findOne'),
+  find:       Stat(Find.list, 'find'),
 
-  updateOne:  Update.one,
-  updateMany: Update.many,
-  updateSafe: Update.safe,
+  updateOne:  Stat(Update.one, 'updateOne'),
+  updateMany: Stat(Update.many, 'updateMany'),
+  updateSafe: Stat(Update.safe, 'updateSafe'),
 
-  deleteOne:  Delete.one,
-  deleteMany: Delete.many,
-  deleteSafe: Delete.safe
+  deleteOne:  Stat(Delete.one, 'deleteOne'),
+  deleteMany: Stat(Delete.many, 'deleteMany'),
+  deleteSafe: Stat(Delete.safe, 'deleteSafe')
 
 });
