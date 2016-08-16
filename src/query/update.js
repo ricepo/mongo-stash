@@ -27,6 +27,9 @@ async function one(id, changes, options) {
   this.cache.del(id);
   options = _.assign({ }, options, defaults);
 
+  /* Update internal version reference */
+  _.set(changes, '$inc.__v', 1);
+
   const write = await this.collection.findOneAndUpdate(query, changes, options);
   this.cache.set(write.value);
   return write.value;
@@ -63,6 +66,9 @@ async function many(query, changes, options) {
   /* Drop all of them from cache */
   matches.forEach(i => this.cache.del(i));
 
+  /* Update internal version reference */
+  _.set(changes, '$inc.__v', 1);
+
   /* Execute the update */
   query = { _id: { $in: matches } };
   const write = await this.collection.updateMany(query, changes, options);
@@ -89,6 +95,9 @@ async function many(query, changes, options) {
  */
 async function safe(query, changes, options) {
   options = _.assign({ }, options, defaults);
+
+  /* Update internal version reference */
+  _.set(changes, '$inc.__v', 1);
 
   const write = await this.collection.updateMany(query, changes, options);
   this.cache.reset();

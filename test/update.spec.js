@@ -42,7 +42,10 @@ describe('updateOne(2)', async function() {
     expect(args[0])
       .to.deep.equal({ _id: value._id });
     expect(args[1])
-      .to.deep.equal({ $set: { foo: 'bar' } });
+      .to.deep.equal({
+        $inc: { __v: 1 },
+        $set: { foo: 'bar' }
+      });
     expect(args[2])
       .to.deep.equal({ returnOriginal: false });
 
