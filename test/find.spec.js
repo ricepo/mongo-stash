@@ -56,6 +56,23 @@ describe('findById(1)', async function() {
 
   });
 
+  it('should clone the object if retrieving from cache', async function() {
+    const value = this.data[10];
+    const result = await this.stash.findById(value._id);
+
+    /* Check if result is good */
+    expect(result).to.have.property('index', value.index);
+    expect(this.collection.findOne).to.be.calledOnce;
+
+    /* Mutate the object */
+    result.foo = 'bar';
+
+    /* Retrieve the value again, then check if it was cached */
+    const another = await this.stash.findById(value._id);
+    expect(another).not.to.have.property('foo');
+    expect(this.collection.findOne).to.be.calledOnce;
+  });
+
 });
 
 describe('find(2)', async function() {

@@ -109,6 +109,21 @@ describe('insertOne(2)', async function() {
       .to.have.callCount(0);
   });
 
+  it('should clone the object before returning', async function() {
+    const result = await this.stash.insertOne(this.value);
+    expect(result)
+      .to.exist;
+
+    /* mutate the object */
+    result.foo = 'bar';
+
+    const verify = await this.stash.findById(this.value._id);
+    expect(verify)
+      .not.to.have.property('foo');
+    expect(this.collection.findOne)
+      .to.have.callCount(0);
+  });
+
   it('should support string IDs', async function() {
     this.value._id = 'foobar123';
     const result = await this.stash.insertOne(this.value);
@@ -183,6 +198,22 @@ describe('insertMany(2)', async function() {
 
     expect(this.collection.insertMany)
       .not.to.be.called;
+  });
+
+  it('should cache and clone results before returning', async function() {
+    const results = await this.stash.insertMany(this.values);
+
+    expect(results)
+      .to.have.length(this.values.length);
+
+    /* pick an object and mutate it */
+    results[0].foo = 'bar';
+
+    const verify = await this.stash.findById(results[0]._id);
+
+    expect(verify)
+      .not.to.have.property('foo');
+
   });
 
 });

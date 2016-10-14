@@ -49,9 +49,7 @@ it('should wrap the LruCache.get', async function() {
     .to.be.calledWith(id.toString());
 });
 
-it('should wrap the LruCache.set', async function(done) {
-  const cb = () => done();
-  this.stash.on('cache.set', cb);
+it('should wrap the LruCache.set', async function() {
 
   const value = { _id: ObjectID() };
 
@@ -61,20 +59,18 @@ it('should wrap the LruCache.set', async function(done) {
     .to.be.calledWith(value._id.toString(), value);
 
   const actual = this.cache.get(value._id);
-  expect(actual).to.equal(value);
+  expect(actual).to.deep.equal(value);
 
 });
 
-it('should wrap the LruCache.del', async function(done) {
-  const cb = () => done();
-  this.stash.on('cache.del', cb);
+it('should wrap the LruCache.del', async function() {
 
   const value = { _id: ObjectID() };
 
   this.cache.set(value);
 
   const actual = this.cache.get(value._id);
-  expect(actual).to.equal(value);
+  expect(actual).to.deep.equal(value);
 
   this.cache.del(value._id);
   expect(LruCache.prototype.del)
@@ -86,16 +82,14 @@ it('should wrap the LruCache.del', async function(done) {
 
 });
 
-it('should wrap the LruCache.reset', async function(done) {
-  const cb = () => done();
-  this.stash.on('cache.reset', cb);
+it('should wrap the LruCache.reset', async function() {
 
   const value = { _id: ObjectID() };
 
   this.cache.set(value);
 
   const actual = this.cache.get(value._id);
-  expect(actual).to.equal(value);
+  expect(actual).to.deep.equal(value);
 
   this.cache.reset();
   expect(LruCache.prototype.reset)
