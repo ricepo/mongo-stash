@@ -84,7 +84,10 @@ gulp.task('relint', ['clean'], lint);
 gulp.task('test', ['build'], function(done) {
 
   gulp.src([ 'test/index.spec.js' ], { read: false })
-  .pipe(mocha({ reporter: 'spec' }))
+  .pipe(mocha({
+    reporter: 'spec',
+    timeout: 10000
+  }))
   .once('end', done);
 
 });
@@ -103,7 +106,9 @@ gulp.task('coverage', ['build'], function(done) {
     .pipe(istanbul.hookRequire())
     .on('finish', function() {
       gulp.src(['test/index.spec.js'])
-        .pipe(mocha())
+        .pipe(mocha({
+          timeout: 10000
+        }))
         .pipe(istanbul.writeReports({
           dir: 'coverage',
           reportOpts: { dir: 'coverage' },
