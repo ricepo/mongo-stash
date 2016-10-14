@@ -12,7 +12,8 @@ const LruCache     = require('lru-cache');
  * get(1)
  */
 function get(stash, id) {
-  return LruCache.prototype.get.call(this, id.toString());
+  const result = LruCache.prototype.get.call(this, id.toString());
+  return _.cloneDeep(result);
 }
 
 
@@ -23,7 +24,7 @@ function set(stash, obj, age) {
   if (!obj || !obj._id) { return obj; }
   LruCache.prototype.set.call(this, obj._id.toString(), obj, age);
   stash.emit('cache.set', obj._id);
-  return obj;
+  return _.cloneDeep(obj);
 }
 
 

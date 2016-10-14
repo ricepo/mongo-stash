@@ -55,8 +55,7 @@ async function many(items, options = null) {
   /* Insert items, cache them, and return them */
   const write = await this.collection.insertMany(items, options);
   const entries = write.ops;
-  entries.forEach(entry => this.cache.set(entry));
-  return entries;
+  return entries.map(entry => this.cache.set(entry));
 
 }
 
