@@ -17,6 +17,9 @@ const ObjectID     = require('../objectid');
 async function byId(id) {
 
   const cached = this.cache.get(id);
+
+  console.log(cached);
+
   if (cached) {
     this.stats.point(1, 'hit');
     return cached;

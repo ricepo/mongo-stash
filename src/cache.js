@@ -5,25 +5,42 @@
  * @license MIT
  */
 const _            = require('lodash');
-const LruCache     = require('lru-cache');
+// const LruCache     = require('lru-cache');
 
 
 /**
  * get(1)
  */
-function get(stash, id) {
-  const result = LruCache.prototype.get.call(this, id.toString());
-  return _.cloneDeep(result);
+function get(stash, client, id) {
+
+  console.log('client =>', client);
+  // const result = LruCache.prototype.get.call(this, id.toString());
+  // return _.cloneDeep(result);
+  client.set('test', 'test');
+  client.get(id.toString(), (err, reply) => {
+    console.log(reply);
+  });
+  client.get('test', (err, reply) => {
+    console.log(reply);
+  });
+
+  // return JSON.parse(result);
 }
 
 
 /**
  * set(1)
  */
-function set(stash, obj, age) {
-  if (!obj || !obj._id) { return obj; }
-  LruCache.prototype.set.call(this, obj._id.toString(), obj, age);
-  stash.emit('cache.set', obj._id);
+function set(stash, client, obj, age) {
+
+  console.log('obj=> ', obj);
+  console.log('client =>', client);
+  // if (!obj || !obj._id) { return obj; }
+  // LruCache.prototype.set.call(this, obj._id.toString(), obj, age);
+  // stash.emit('cache.set', obj._id);
+  // return _.cloneDeep(obj);
+
+  client.set(obj._id.toString(), JSON.stringify(obj), 'PX', age);
   return _.cloneDeep(obj);
 }
 
@@ -31,8 +48,12 @@ function set(stash, obj, age) {
 /**
  * del(1)
  */
-function del(stash, id) {
-  const result = LruCache.prototype.del.call(this, id.toString());
+function del(stash, client, id) {
+  // const result = LruCache.prototype.del.call(this, id.toString());
+  // stash.emit('cache.del', id);
+  // return result;
+
+  const result = client.del(id.toString());
   stash.emit('cache.del', id);
   return result;
 }
@@ -41,8 +62,10 @@ function del(stash, id) {
 /**
  * reset(0)
  */
-function reset(stash) {
-  LruCache.prototype.reset.call(this);
+function reset(stash, client) {
+  // LruCache.prototype.reset.call(this);
+
+  client.flushall();
   stash.emit('cache.reset');
 }
 
@@ -50,12 +73,12 @@ function reset(stash) {
 /**
  * Default export, creates a patched LRU cache.
  */
-function cache(stash, options) {
-  const lru = LruCache(options);
-  lru.get = _.partial(get, stash);
-  lru.set = _.partial(set, stash);
-  lru.del = _.partial(del, stash);
-  lru.reset = _.partial(reset, stash);
+function cache(stash, client) {
+  const lru = {};
+  lru.get = _.partial(get, stash, client);
+  lru.set = _.partial(set, stash, client);
+  lru.del = _.partial(del, stash, client);
+  lru.reset = _.partial(reset, stash, client);
   return lru;
 }
 
