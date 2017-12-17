@@ -11,36 +11,31 @@ const _            = require('lodash');
 /**
  * get(1)
  */
-function get(stash, client, id) {
+async function get(stash, client, id) {
 
-  console.log('client =>', client);
+  // let result = null;
   // const result = LruCache.prototype.get.call(this, id.toString());
   // return _.cloneDeep(result);
-  client.set('test', 'test');
-  client.get(id.toString(), (err, reply) => {
-    console.log(reply);
-  });
-  client.get('test', (err, reply) => {
-    console.log(reply);
-  });
+  const result = await client
+    .getAsync(id.toString())
+    .then((res) => res);
 
-  // return JSON.parse(result);
+  return JSON.parse(result);
 }
 
 
 /**
  * set(1)
  */
-function set(stash, client, obj, age) {
+function set(stash, client, obj) {
 
-  console.log('obj=> ', obj);
-  console.log('client =>', client);
   // if (!obj || !obj._id) { return obj; }
   // LruCache.prototype.set.call(this, obj._id.toString(), obj, age);
   // stash.emit('cache.set', obj._id);
   // return _.cloneDeep(obj);
 
-  client.set(obj._id.toString(), JSON.stringify(obj), 'PX', age);
+  client.set(obj._id.toString(), JSON.stringify(obj), 'PX', 86400000);
+  stash.emit('cache.set', obj._id);
   return _.cloneDeep(obj);
 }
 

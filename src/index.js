@@ -31,7 +31,6 @@ function MongoStash(collection, client, options = 500) {
   this.stats = Stats.NamedStats(1111, 1000);
   this.cache = Cache(this, client, options);
   this.collection = collection;
-  this.redis = client;
 
   this.defaults = Object.create(null);
   this.projection = Object.create(null);
