@@ -21,16 +21,17 @@ const Delete       = require('./query/delete');
  * MongoStash class.
  */
 /* eslint consistent-return: 0 */
-function MongoStash(collection, client, options = 500) {
-
+function MongoStash(collection, redis, age) {
 
   if (!(this instanceof MongoStash)) {
-    return new MongoStash(collection, client, options);
+    return new MongoStash(collection, redis, age);
   }
 
   this.stats = Stats.NamedStats(1111, 1000);
   this.collection = collection;
-  this.cache = Cache(this, client, options);
+  this.collectionName = _.get(collection, 's.name');
+  this.redis = redis;
+  this.cache = Cache(this, age);
 
   this.defaults = Object.create(null);
   this.projection = Object.create(null);

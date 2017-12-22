@@ -10,20 +10,19 @@ const _            = require('lodash');
 /**
  * get(1)
  */
-async function get(stash, client, name, id) {
+async function get(stash, id) {
 
-  // const name = await stash.collectionName.then(res => res);
-
-  // let result = null;
-  // const result = LruCache.prototype.get.call(this, id.toString());
-  // return _.cloneDeep(result);
-
+  /* Create key using collection name and id */
+  const name = stash.collectionName;
   const key = `${name}_${id.toString()}`;
 
-  const result = await client
-    .getAsync(key)
-    .then((res) => res);
+  /* Initialise result as null */
+  let result = null;
 
+  /* Get the cached value */
+  result = await stash.redis.getAsync(key);
+
+  /* parse string */
   return JSON.parse(result);
 }
 
@@ -31,18 +30,21 @@ async function get(stash, client, name, id) {
 /**
  * set(1)
  */
-function set(stash, client, name, obj) {
+function set(stash, age, obj) {
 
-  // if (!obj || !obj._id) { return obj; }
-  // LruCache.prototype.set.call(this, obj._id.toString(), obj, age);
-  // stash.emit('cache.set', obj._id);
-  // return _.cloneDeep(obj);
-
+  /* check if object or id is null */
   if (!obj || !obj._id) { return obj; }
 
+  /* Create key using collection name and id */
+  const name = stash.collectionName;
   const key = `${name}_${obj._id.toString()}`;
-  client.set(key, JSON.stringify(obj), 'PX', 86400000);
+
+  /* Set cached with expiration of 24 hours */
+  stash.redis.set(key, JSON.stringify(obj), 'PX', age);
+
+  /* Emit cache set event */
   stash.emit('cache.set', obj._id);
+
   return _.cloneDeep(obj);
 }
 
@@ -50,15 +52,18 @@ function set(stash, client, name, obj) {
 /**
  * del(1)
  */
-function del(stash, client, name, id) {
-  // const result = LruCache.prototype.del.call(this, id.toString());
-  // stash.emit('cache.del', id);
-  // return result;
+function del(stash, id) {
 
+  /* Create key using collection name and id */
+  const name = stash.collectionName;
   const key = `${name}_${id.toString()}`;
 
-  const result = client.del(key);
+  /* Delete the cache */
+  const result = stash.redis.del(key);
+
+  /* Emit event about delete cache */
   stash.emit('cache.del', id);
+
   return result;
 }
 
@@ -66,10 +71,12 @@ function del(stash, client, name, id) {
 /**
  * reset(0)
  */
-function reset(stash, client) {
-  // LruCache.prototype.reset.call(this);
+function reset(stash) {
 
-  client.flushall();
+  /* Flush all cached */
+  stash.redis.flushall();
+
+  /* Emit cache reset */
   stash.emit('cache.reset');
 }
 
@@ -77,15 +84,16 @@ function reset(stash, client) {
 /**
  * Default export, creates a patched LRU cache.
  */
-function cache(stash, client) {
+function cache(stash, age) {
 
-  const lru = {};
-  const name = _.get(stash.collection, 's.name');
-  lru.get = _.partial(get, stash, client, name);
-  lru.set = _.partial(set, stash, client, name);
-  lru.del = _.partial(del, stash, client, name);
-  lru.reset = _.partial(reset, stash, client, name);
-  return lru;
+  /* Initialise redisCache */
+  const redisCache = {};
+
+  redisCache.get = _.partial(get, stash);
+  redisCache.set = _.partial(set, stash, age);
+  redisCache.del = _.partial(del, stash);
+  redisCache.reset = _.partial(reset, stash);
+  return redisCache;
 }
 
 
