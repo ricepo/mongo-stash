@@ -6,6 +6,12 @@
  */
 const ObjectID     = require('bson-objectid');
 const MongoStash   = dofile('index');
+const redis        = {
+  getAsync: Sinon.stub(),
+  set: Sinon.stub(),
+  del: Sinon.stub(),
+  reset: Sinon.stub()
+};
 
 
 /*!
@@ -24,7 +30,7 @@ beforeEach(async function() {
     { _id: ObjectID(), index: 103 }
   ];
 
-  this.stash = MongoStash(this.collection);
+  this.stash = MongoStash(this.collection, redis);
 });
 
 
@@ -34,6 +40,8 @@ beforeEach(async function() {
 describe('insertOne(2)', async function() {
 
   it('should insert a document', async function() {
+
+    redis.set.returns(this.value);
     const result = await this.stash.insertOne(this.value);
 
     expect(result).to.have.property('index', 999);
@@ -46,6 +54,7 @@ describe('insertOne(2)', async function() {
   it('should correctly apply defaults callback', async function() {
     this.stash.defaults = Sinon.spy(doc => ({ foo: doc._id }));
 
+    redis.set.returns(this.value);
     const result = await this.stash.insertOne(this.value);
     expect(this.stash.defaults)
       .to.be.calledOnce
@@ -66,6 +75,7 @@ describe('insertOne(2)', async function() {
   it('should correctly apply defaults object', async function() {
     this.stash.defaults = { foo: 'bar' };
 
+    redis.set.returns(this.value);
     const result = await this.stash.insertOne(this.value);
     expect(result)
       .to.have.property('foo', 'bar');
@@ -83,6 +93,7 @@ describe('insertOne(2)', async function() {
   it('should apply options', async function() {
     const options = { };
 
+    redis.set.returns(this.value);
     const result = await this.stash.insertOne(this.value, options);
     expect(result).to.exist;
     expect(this.collection.insertOne)
@@ -98,10 +109,12 @@ describe('insertOne(2)', async function() {
   });
 
   it('should add inserted document to cache', async function() {
+    redis.set.returns(this.value);
     const result = await this.stash.insertOne(this.value);
     expect(result)
       .to.exist;
 
+    redis.getAsync.resolves(JSON.stringify(this.value));
     const verify = await this.stash.findById(this.value._id);
     expect(verify)
       .to.have.property('index', this.value.index);
@@ -110,6 +123,7 @@ describe('insertOne(2)', async function() {
   });
 
   it('should clone the object before returning', async function() {
+    redis.set.returns(this.value);
     const result = await this.stash.insertOne(this.value);
     expect(result)
       .to.exist;
@@ -117,6 +131,7 @@ describe('insertOne(2)', async function() {
     /* mutate the object */
     result.foo = 'bar';
 
+    redis.getAsync.resolves(JSON.stringify(this.value));
     const verify = await this.stash.findById(this.value._id);
     expect(verify)
       .not.to.have.property('foo');
@@ -126,10 +141,12 @@ describe('insertOne(2)', async function() {
 
   it('should support string IDs', async function() {
     this.value._id = 'foobar123';
+    redis.set.returns(this.value);
     const result = await this.stash.insertOne(this.value);
 
     expect(result).to.have.property('index', 999);
 
+    redis.getAsync.resolves(JSON.stringify(this.value));
     const verify = await this.stash.findById('foobar123');
     expect(verify)
       .to.exist

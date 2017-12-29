@@ -5,106 +5,90 @@
  * @license MIT
  */
 
-const LruCache     = require('lru-cache');
+const _            = require('lodash');
 const ObjectID     = require('bson-objectid');
-const Stash        = dofile('index');
+const Cache        = require('../src/cache');
 
+const context = {
+  emit: _.noop(),
+  collectionName: 'test',
+  redis: {
+    getAsync: _.noop(),
+    set: _.noop(),
+    delete: _.noop(),
+    flushall: _.noop()
+  }
+};
 
-/*!
- * Setup testing infrastructure
- */
-before(async function() {
-  LruCache.prototype._get = LruCache.prototype.get;
-  LruCache.prototype._set = LruCache.prototype.set;
-  LruCache.prototype._del = LruCache.prototype.del;
-  LruCache.prototype._reset = LruCache.prototype.reset;
-});
+beforeEach(function() {
+  context.emit = Sinon.stub();
+  context.redis.getAsync = Sinon.stub().resolves('{}');
+  context.redis.set = Sinon.stub();
+  context.redis.del = Sinon.stub();
+  context.redis.flushall = Sinon.stub();
 
-after(async function() {
-  LruCache.prototype.get = LruCache.prototype._get;
-  LruCache.prototype.set = LruCache.prototype._set;
-  LruCache.prototype.del = LruCache.prototype._del;
-  LruCache.prototype.reset = LruCache.prototype._reset;
-});
+  this.cache = Cache(context, 346700);
 
-beforeEach(async function() {
-  this.stash = new Stash(null);
-  this.cache = this.stash.cache;
-  LruCache.prototype.get = Sinon.spy(LruCache.prototype._get);
-  LruCache.prototype.set = Sinon.spy(LruCache.prototype._set);
-  LruCache.prototype.del = Sinon.spy(LruCache.prototype._del);
-  LruCache.prototype.reset = Sinon.spy(LruCache.prototype._reset);
 });
 
 
 /*!
  * Test cases start here
  */
-it('should wrap the LruCache.get', async function() {
+it('should call redis get function', async function() {
   const id = ObjectID();
+  const key = `test_${id.toString()}`;
 
-  this.cache.get(id);
-  expect(LruCache.prototype.get)
+  const result = await this.cache.get(id);
+  expect(context.redis.getAsync)
     .to.be.calledOnce.and
-    .to.be.calledWith(id.toString());
-});
+    .to.be.calledWith(key);
 
-it('should wrap the LruCache.set', async function() {
-
-  const value = { _id: ObjectID() };
-
-  this.cache.set(value);
-  expect(LruCache.prototype.set)
-    .to.be.calledOnce.and
-    .to.be.calledWith(value._id.toString(), value);
-
-  const actual = this.cache.get(value._id);
-  expect(actual).to.deep.equal(value);
+  expect(result).to.deep.equal({ });
 
 });
 
-it('should wrap the LruCache.del', async function() {
+it('should call redis set function', async function() {
 
   const value = { _id: ObjectID() };
+  const key = `test_${value._id.toString()}`;
+
 
   this.cache.set(value);
-
-  const actual = this.cache.get(value._id);
-  expect(actual).to.deep.equal(value);
-
-  this.cache.del(value._id);
-  expect(LruCache.prototype.del)
+  expect(context.redis.set)
     .to.be.calledOnce.and
-    .to.be.calledWith(value._id.toString());
-
-  const another = this.cache.get(value._id);
-  expect(another).not.to.exist;
+    .to.be.calledWith(key, JSON.stringify(value), 'PX', 346700);
 
 });
 
-it('should wrap the LruCache.reset', async function() {
+it('should call the redis del function', function() {
 
-  const value = { _id: ObjectID() };
+  const id = ObjectID();
+  const key = `test_${id.toString()}`;
 
-  this.cache.set(value);
+  this.cache.del(id);
 
-  const actual = this.cache.get(value._id);
-  expect(actual).to.deep.equal(value);
+  expect(context.redis.del)
+    .to.be.calledOnce.and
+    .to.be.calledWith(key);
+
+
+});
+
+it('should call flushall function  of redis', function() {
+
 
   this.cache.reset();
-  expect(LruCache.prototype.reset)
+  expect(context.redis.flushall)
     .to.be.calledOnce;
-
-  const another = this.cache.get(value._id);
-  expect(another).not.to.exist;
 
 });
 
-it('should not call set if value is null or has no ID', async function() {
+it('should not call set if value is null or has no ID', function() {
   const value = { };
 
   this.cache.set(value);
 
-  expect(LruCache.prototype.set)
+  expect(context.redis.set)
     .to.have.callCount(0);
 });
