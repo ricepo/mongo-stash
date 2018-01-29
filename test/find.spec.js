@@ -5,16 +5,23 @@
  * @license MIT
  */
 const MongoStash   = dofile('index');
+const redis        = {
+  getAsync: Sinon.stub(),
+  set: Sinon.stub(),
+  del: Sinon.stub(),
+  reset: Sinon.stub()
+};
 
 
 /*!
  * Setup testing infrastructure
  */
 beforeEach(async function() {
+
   this.collection.findOne = Sinon.spy(this.collection.findOne);
   this.collection.find = Sinon.spy(this.collection.find);
 
-  this.stash = MongoStash(this.collection);
+  this.stash = MongoStash(this.collection, redis);
 });
 
 
@@ -25,7 +32,12 @@ beforeEach(async function() {
 describe('findById(1)', async function() {
 
   it('should find the value by ID', async function() {
+
     const value = this.data[0];
+
+    /* No cached is saved */
+    redis.getAsync.resolves(null);
+    redis.set.returns(value);
     const result = await this.stash.findById(value._id);
 
     /* Check if result is good */
@@ -33,31 +45,33 @@ describe('findById(1)', async function() {
 
     /* Check if the native driver was called correctly */
     expect(this.collection.findOne).to.be.calledOnce;
+    expect(redis.set).to.be.calledOnce;
     const args = this.collection.findOne.firstCall.args;
     expect(args).to.have.length(1);
     expect(args[0]).to.deep.equal({ _id: value._id });
 
-    /* Expect cache to have the value */
-    expect(this.stash.cache.has(value._id.toString())).to.be.true;
   });
 
   it('should use cache when available', async function() {
     const value = this.data[10];
+
+    /* Get the cached value */
+    redis.getAsync.resolves(JSON.stringify(value));
     const result = await this.stash.findById(value._id);
 
     /* Check if result is good */
     expect(result).to.have.property('index', value.index);
-    expect(this.collection.findOne).to.be.calledOnce;
-
-    /* Retrieve the value again, then check if it was cached */
-    const another = await this.stash.findById(value._id);
-    expect(another).to.have.property('index', value.index);
-    expect(this.collection.findOne).to.be.calledOnce;
+    expect(this.collection.findOne).not.to.be.called;
 
   });
 
   it('should clone the object if retrieving from cache', async function() {
     const value = this.data[10];
+
+    /* No cached is saved */
+    redis.getAsync.resolves(null);
+    redis.set.returns(value);
+
     const result = await this.stash.findById(value._id);
 
     /* Check if result is good */
@@ -70,7 +84,6 @@ describe('findById(1)', async function() {
     /* Retrieve the value again, then check if it was cached */
     const another = await this.stash.findById(value._id);
     expect(another).not.to.have.property('foo');
-    expect(this.collection.findOne).to.be.calledOnce;
   });
 
 });

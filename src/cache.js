@@ -5,25 +5,46 @@
  * @license MIT
  */
 const _            = require('lodash');
-const LruCache     = require('lru-cache');
 
 
 /**
  * get(1)
  */
-function get(stash, id) {
-  const result = LruCache.prototype.get.call(this, id.toString());
-  return _.cloneDeep(result);
+async function get(stash, id) {
+
+  /* Create key using collection name and id */
+  const name = stash.collectionName;
+  const key = `${name}_${id.toString()}`;
+
+  /* Initialise result as null */
+  let result = null;
+
+  /* Get the cached value */
+  result = await stash.redis.getAsync(key);
+
+  /* parse string */
+  return JSON.parse(result);
 }
 
 
 /**
  * set(1)
  */
-function set(stash, obj, age) {
+function set(stash, age, obj) {
+
+  /* check if object or id is null */
   if (!obj || !obj._id) { return obj; }
-  LruCache.prototype.set.call(this, obj._id.toString(), obj, age);
+
+  /* Create key using collection name and id */
+  const name = stash.collectionName;
+  const key = `${name}_${obj._id.toString()}`;
+
+  /* Set cached with expiration of 24 hours */
+  stash.redis.set(key, JSON.stringify(obj), 'PX', age);
+
+  /* Emit cache set event */
   stash.emit('cache.set', obj._id);
+
   return _.cloneDeep(obj);
 }
 
@@ -32,8 +53,17 @@ function set(stash, obj, age) {
  * del(1)
  */
 function del(stash, id) {
-  const result = LruCache.prototype.del.call(this, id.toString());
+
+  /* Create key using collection name and id */
+  const name = stash.collectionName;
+  const key = `${name}_${id.toString()}`;
+
+  /* Delete the cache */
+  const result = stash.redis.del(key);
+
+  /* Emit event about delete cache */
   stash.emit('cache.del', id);
+
   return result;
 }
 
@@ -42,7 +72,11 @@ function del(stash, id) {
  * reset(0)
  */
 function reset(stash) {
-  LruCache.prototype.reset.call(this);
+
+  /* Flush all cached */
+  stash.redis.flushall();
+
+  /* Emit cache reset */
   stash.emit('cache.reset');
 }
 
@@ -50,13 +84,16 @@ function reset(stash) {
 /**
  * Default export, creates a patched LRU cache.
  */
-function cache(stash, options) {
-  const lru = LruCache(options);
-  lru.get = _.partial(get, stash);
-  lru.set = _.partial(set, stash);
-  lru.del = _.partial(del, stash);
-  lru.reset = _.partial(reset, stash);
-  return lru;
+function cache(stash, age) {
+
+  /* Initialise redisCache */
+  const redisCache = {};
+
+  redisCache.get = _.partial(get, stash);
+  redisCache.set = _.partial(set, stash, age);
+  redisCache.del = _.partial(del, stash);
+  redisCache.reset = _.partial(reset, stash);
+  return redisCache;
 }
 
 
