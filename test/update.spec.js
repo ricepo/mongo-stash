@@ -7,12 +7,7 @@
 
 const ObjectID     = require('bson-objectid');
 const MongoStash   = dofile('index');
-const redis        = {
-  getAsync: Sinon.stub(),
-  set: Sinon.stub(),
-  del: Sinon.stub(),
-  flushall: Sinon.stub()
-};
+
 
 /*!
  * Setup testing infrastructure
@@ -22,7 +17,7 @@ beforeEach(async function() {
   this.collection.findOneAndUpdate = Sinon.spy(this.collection.findOneAndUpdate);
   this.collection.updateMany = Sinon.spy(this.collection.updateMany);
 
-  this.stash = new MongoStash(this.collection, redis);
+  this.stash = new MongoStash(this.collection);
   this.stash.updateSafe = Sinon.spy(this.stash.updateSafe);
 });
 
@@ -36,7 +31,6 @@ describe('updateOne(2)', async function() {
     const value = this.data[37];
     const changes = { $set: { foo: 'bar' } };
 
-    redis.set.returns({ foo: 'bar' });
     const result = await this.stash.updateOne(value._id, changes);
     expect(result)
       .to.have.property('foo', 'bar');
@@ -54,7 +48,6 @@ describe('updateOne(2)', async function() {
     expect(args[2])
       .to.deep.equal({ returnOriginal: false });
 
-    redis.getAsync.resolves(JSON.stringify({ foo: 'bar' }));
     const verify = await this.stash.findById(value._id);
     expect(this.collection.findOne)
       .to.have.callCount(0);
@@ -67,16 +60,14 @@ describe('updateOne(2)', async function() {
     const value = this.data[41];
     const changes = { $set: { foo: 'bar' } };
 
-    redis.getAsync.resolves(JSON.stringify(value));
-    const result1 = await this.stash.findById(value._id);
+    await this.stash.findById(value._id);
+    expect(this.stash.cache.has(value._id.toString()))
+      .to.be.true;
 
-    expect(result1.index).to.be.equal(value.index);
-
-    redis.set.returns({ foo: 'bar' });
     await this.stash.updateOne(value._id, changes);
+    expect(this.stash.cache.has(value._id.toString()))
+      .to.be.true;
 
-    redis.getAsync.resolves(null);
-    redis.set.returns({ foo: 'bae' });
     const result = await this.stash.findById(value._id);
     expect(this.collection.findOne)
       .to.be.calledOnce;
@@ -90,7 +81,6 @@ describe('updateOne(2)', async function() {
     const changes = { $set: { foo: 'bar' } };
     const options = { upsert: true };
 
-    redis.set.returns({ foo: 'bar' });
     const result = await this.stash.updateOne(value._id, changes, options);
     expect(result)
       .to.exist
@@ -103,7 +93,6 @@ describe('updateOne(2)', async function() {
     expect(args[2])
       .to.deep.equal({ returnOriginal: false, upsert: true });
 
-    redis.getAsync.resolves(JSON.stringify({ foo: 'bar' }));
     const verify = await this.stash.findById(value._id);
     expect(this.collection.findOne)
       .to.have.callCount(0);
@@ -135,34 +124,39 @@ describe('updateMany(3)', async function() {
     const query = { index: { $lt: 20 } };
     const changes = { $set: { foo: 'bar' } };
 
+    /* Make stash cache some IDs */
+    await this.stash.findById(this.data[0]._id);
+    await this.stash.findById(this.data[10]._id);
+    await this.stash.findById(this.data[19]._id);
+    await this.stash.findById(this.data[22]._id);
+
     /* Execute update operation */
     await this.stash.updateMany(query, changes);
 
     /* Check if items are dropped; unmatched should remain cached */
-    redis.getAsync.resolves(null);
     const actual1 = await this.stash.findById(this.data[0]._id);
     expect(actual1)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
-      .to.have.callCount(1);
+      .to.have.callCount(5);
 
     const actual2 = await this.stash.findById(this.data[10]._id);
     expect(actual2)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
-      .to.have.callCount(2);
+      .to.have.callCount(6);
 
     const actual3 = await this.stash.findById(this.data[19]._id);
     expect(actual3)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
-      .to.have.callCount(3);
+      .to.have.callCount(7);
 
     const actual4 = await this.stash.findById(this.data[22]._id);
     expect(actual4)
       .not.to.have.property('foo');
     expect(this.collection.findOne)
-      .to.have.callCount(4);
+      .to.have.callCount(7);
 
   });
 
@@ -212,35 +206,39 @@ describe('updateSafe(3)', async function() {
     const query = { index: { $lt: 20 } };
     const changes = { $set: { foo: 'bar' } };
 
+    /* Make stash cache some IDs */
+    await this.stash.findById(this.data[0]._id);
+    await this.stash.findById(this.data[10]._id);
+    await this.stash.findById(this.data[19]._id);
+    await this.stash.findById(this.data[22]._id);
+
     /* Execute update operation */
     await this.stash.updateSafe(query, changes);
 
     /* Check if items are dropped; unmatched should remain cached */
-    redis.getAsync.resolves(null);
     const actual1 = await this.stash.findById(this.data[0]._id);
     expect(actual1)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
-      .to.have.callCount(1);
+      .to.have.callCount(5);
 
     const actual2 = await this.stash.findById(this.data[10]._id);
     expect(actual2)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
-      .to.have.callCount(2);
-
+      .to.have.callCount(6);
 
     const actual3 = await this.stash.findById(this.data[19]._id);
     expect(actual3)
       .to.have.property('foo', 'bar');
     expect(this.collection.findOne)
-      .to.have.callCount(3);
+      .to.have.callCount(7);
 
     const actual4 = await this.stash.findById(this.data[22]._id);
     expect(actual4)
       .not.to.have.property('foo');
     expect(this.collection.findOne)
-      .to.have.callCount(4);
+      .to.have.callCount(8);
 
   });
 

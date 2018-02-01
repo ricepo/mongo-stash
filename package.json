@@ -73,7 +73,7 @@
     "mocha": "^2.2.5",
     "mongodb": "^2.1.7",
     "shortid": "^2.2.4",
-    "sinon": "^2.0.0",
+    "sinon": "^1.15.4",
     "sinon-chai": "^2.8.0"
   },
   "keywords": [],

@@ -7,12 +7,6 @@
 
 const ObjectID     = require('bson-objectid');
 const MongoStash   = dofile('index');
-const redis        = {
-  getAsync:           Sinon.stub(),
-  set:                Sinon.stub(),
-  del:                Sinon.stub(),
-  flushall:           Sinon.stub()
-};
 
 
 /*!
@@ -23,7 +17,7 @@ beforeEach(async function() {
   this.collection.deleteOne = Sinon.spy(this.collection.deleteOne);
   this.collection.deleteMany = Sinon.spy(this.collection.deleteMany);
 
-  this.stash = new MongoStash(this.collection, redis);
+  this.stash = new MongoStash(this.collection);
   this.stash.deleteSafe = Sinon.spy(this.stash.deleteSafe);
 });
 
@@ -52,15 +46,16 @@ describe('deleteOne(1)', async function() {
     const value = this.data[54];
 
     /* Cache the value */
-    redis.getAsync.resolves(JSON.stringify(value));
-    const result1 = await this.stash.findById(value._id);
-    expect(result1.index).to.equal(value.index);
+    await this.stash.findById(value._id);
+    expect(this.stash.cache.has(value._id.toString()))
+      .to.be.true;
 
     /* Delete the value */
     const result = await this.stash.deleteOne(value._id);
     expect(result)
       .to.be.true;
-
+    expect(this.stash.cache.has(value._id.toString()))
+      .to.be.false;
   });
 
 });
@@ -81,34 +76,39 @@ describe('deleteMany(1)', async function() {
   it('should drop matched itmes from cache', async function() {
     const query = { index: { $lt: 20 } };
 
+    /* Make stash cache some IDs */
+    await this.stash.findById(this.data[0]._id);
+    await this.stash.findById(this.data[10]._id);
+    await this.stash.findById(this.data[19]._id);
+    await this.stash.findById(this.data[22]._id);
+
     /* Execute update operation */
     await this.stash.deleteMany(query);
 
     /* Check if items are dropped; unmatched should remain cached */
-    redis.getAsync.resolves(null);
     const actual1 = await this.stash.findById(this.data[0]._id);
     expect(actual1)
       .not.to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(1);
+      .to.have.callCount(5);
 
     const actual2 = await this.stash.findById(this.data[10]._id);
     expect(actual2)
       .not.to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(2);
+      .to.have.callCount(6);
 
     const actual3 = await this.stash.findById(this.data[19]._id);
     expect(actual3)
       .not.to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(3);
+      .to.have.callCount(7);
 
     const actual4 = await this.stash.findById(this.data[22]._id);
     expect(actual4)
       .to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(4);
+      .to.have.callCount(7);
 
   });
 
@@ -147,34 +147,39 @@ describe('deleteSafe(1)', async function() {
   it('should drop all itmes from cache', async function() {
     const query = { index: { $lt: 20 } };
 
+    /* Make stash cache some IDs */
+    await this.stash.findById(this.data[0]._id);
+    await this.stash.findById(this.data[10]._id);
+    await this.stash.findById(this.data[19]._id);
+    await this.stash.findById(this.data[22]._id);
+
     /* Execute update operation */
     await this.stash.deleteSafe(query);
 
     /* Check if items are dropped; unmatched should remain cached */
-    redis.getAsync.resolves(null);
     const actual1 = await this.stash.findById(this.data[0]._id);
     expect(actual1)
       .not.to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(1);
+      .to.have.callCount(5);
 
     const actual2 = await this.stash.findById(this.data[10]._id);
     expect(actual2)
       .not.to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(2);
+      .to.have.callCount(6);
 
     const actual3 = await this.stash.findById(this.data[19]._id);
     expect(actual3)
       .not.to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(3);
+      .to.have.callCount(7);
 
     const actual4 = await this.stash.findById(this.data[22]._id);
     expect(actual4)
       .to.exist;
     expect(this.collection.findOne)
-      .to.have.callCount(4);
+      .to.have.callCount(8);
 
   });
 
